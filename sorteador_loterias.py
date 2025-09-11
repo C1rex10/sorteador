@@ -265,11 +265,11 @@ valor_premio = ultimo.get("valorPremio")
 
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
 ultimo_content = f"""
-<div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
+<div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:6px;'>
     <span>Concurso: {ultimo['concurso']}</span>
     <span>Data: {ultimo['data']}</span>
     <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
-
+</div>
 <h4>DEZENAS SORTEADAS:</h4>
 <div class='balls'>{dezenas_html}
 """
