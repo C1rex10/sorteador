@@ -129,7 +129,6 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
                 pass
         return pd.to_datetime(s, dayfirst=True).to_pydatetime()
 
-    # pega último resultado
     home_url = "https://servicebus2.caixa.gov.br/portaldeloterias/api/home/ultimos-resultados"
     r = requests.get(home_url, timeout=30)
     r.raise_for_status()
@@ -239,10 +238,6 @@ with st.sidebar:
     n_escolhas = GAMES[jogo]["n_escolhas"]
     st.write(f"FAIXA DEZENAS 1..{n_bolas} • QUANTIDADE POR VOLANTE: {n_escolhas}")
 
-    st.markdown("### 🔎 Consultar concurso passado")
-    concurso_input = st.number_input("Número do concurso", min_value=1, step=1)
-    consultar = st.button("Ver resultado")
-
 # Carrega dataframe
 with st.spinner("Buscando resultados oficiais da CAIXA..."):
     df = fetch_last6m(jogo)
@@ -251,62 +246,39 @@ cols_dezenas = detect_number_cols(df, n_bolas)
 df_sorted = df.sort_values("concurso").reset_index(drop=True)
 draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
+
 freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
 # ==== Card Último Concurso ====
-st.markdown("""
-<div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0;'>
-    <h3 style='margin-top:0;'>📌 Último Concurso</h3>
-</div>
-""", unsafe_allow_html=True)
-
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
-acumulado = ultimo.get("acumulado")
 valor_premio = ultimo.get("valorPremio")
 
-col1, col2, col3 = st.columns([1, 1, 1])
-with col1:
-    st.markdown(f"<div style='font-size:22px; font-weight:700;'>Concurso: {ultimo['concurso']}</div>", unsafe_allow_html=True)
-with col2:
-    st.markdown(f"<div style='font-size:22px; font-weight:700;'>Data: {ultimo['data']}</div>", unsafe_allow_html=True)
-with col3:
-    if acumulado:
-        st.markdown(f"<div style='font-size:22px; font-weight:700; color:#f1c40f'>💰 Acumulado</div>", unsafe_allow_html=True)
-    if valor_premio:
-        st.markdown(f"<div style='font-size:20px;'>Prêmio: R$ {valor_premio:,}</div>", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
-.balls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.ball{width:44px;height:44px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-weight:700;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
-.ball:nth-child(6n+1){background:#1abc9c}
-.ball:nth-child(6n+2){background:#3498db}
-.ball:nth-child(6n+3){background:#9b59b6}
-.ball:nth-child(6n+4){background:#f39c12}
-.ball:nth-child(6n+5){background:#e74c3c}
-.ball:nth-child(6n+6){background:#2ecc71}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("<h4>Dezenas sorteadas:</h4>", unsafe_allow_html=True)
-dezenas_html = "<div class='balls'>" + "".join(
-    [f"<div class='ball'>{int(d)}</div>" for d in dezenas_ultimo]
-) + "</div>"
-st.markdown(dezenas_html, unsafe_allow_html=True)
+card_ultimo = f"""
+<div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0;'>
+    <h3 style='margin-top:0; color:#3498db;'>📌 Último Concurso</h3>
+    <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin:10px 0;'>
+        <span>Concurso: {ultimo['concurso']}</span>
+        <span>Data: {ultimo['data']}</span>
+        <span style='color:#f1c40f;'>Prêmio: R$ {valor_premio:,}</span>
+    </div>
+    <h4>Dezenas sorteadas:</h4>
+    <div class='balls'>
+        {''.join([f"<div class='ball'>{int(d)}</div>" for d in dezenas_ultimo])}
+    </div>
+</div>
+"""
+st.markdown(card_ultimo, unsafe_allow_html=True)
 
 # ==== Card Palpites ====
 st.markdown("""
 <div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0;'>🧪 Palpites (baseados em números quentes)</h3>
+    <h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>
 </div>
 """, unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1)
-
-if st.button("Gerar Palpites"):
+if st.button("🔄 Gerar novos palpites"):
     generated = []
     tries = 0
     limit_tries = n_palpites * 200
@@ -324,18 +296,20 @@ if st.button("Gerar Palpites"):
 
     csv = out_df.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
-else:
-    st.info("Clique em **Gerar Palpites** para ver novas combinações.")
 
 # ==== Card Aposta Aleatória ====
-st.markdown("""
+card_random = """
 <div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0;'>🎲 Gerar Aposta Aleatória</h3>
+    <h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>
 </div>
-""", unsafe_allow_html=True)
+"""
+st.markdown(card_random, unsafe_allow_html=True)
 
-if st.button("SORTEAR APOSTA"):
-    aposta_aleatoria = sorted(random.sample(range(1, n_bolas + 1), n_escolhas))
+if st.button("🎰 SORTEAR APOSTA ALEATÓRIA"):
+    metade = n_escolhas // 2
+    quentes = freq_df.head(20)["dezena"].tolist()
+    frios = freq_df.tail(20)["dezena"].tolist()
+    aposta_aleatoria = sorted(random.sample(quentes, metade) + random.sample(frios, n_escolhas - metade))
     dezenas_html = "<div class='balls'>" + "".join(
         [f"<div class='ball'>{int(d)}</div>" for d in aposta_aleatoria]
     ) + "</div>"
@@ -344,7 +318,7 @@ if st.button("SORTEAR APOSTA"):
 # ==== Card Últimos 5 Concursos ====
 st.markdown("""
 <div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0;'>📅 Últimos 5 Concursos</h3>
+    <h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>
 </div>
 """, unsafe_allow_html=True)
 
@@ -358,6 +332,22 @@ for _, row in ultimos5.iterrows():
         f"<div style='margin-bottom:12px;'><b>Concurso {row['concurso']} ({row['data']})</b><br>{dezenas_html}</div>",
         unsafe_allow_html=True
     )
+
+# ==== Estilo bolas ====
+st.markdown("""
+<style>
+.balls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ball{width:44px;height:44px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.ball:nth-child(6n+1){background:#1abc9c}
+.ball:nth-child(6n+2){background:#3498db}
+.ball:nth-child(6n+3){background:#9b59b6}
+.ball:nth-child(6n+4){background:#f39c12}
+.ball:nth-child(6n+5){background:#e74c3c}
+.ball:nth-child(6n+6){background:#2ecc71}
+</style>
+""", unsafe_allow_html=True)
 
 # ==== Rodapé ====
 st.caption("⚠️ Este app usa estatísticas históricas apenas para entretenimento. As loterias da CAIXA são aleatórias.")
