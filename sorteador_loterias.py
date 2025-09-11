@@ -270,11 +270,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==== Card Palpites ====
-st.markdown("""
-<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:20px 0;'>"
+            "<h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>", unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1)
 if st.button("🔄 Gerar novos palpites"):
@@ -296,12 +293,11 @@ if st.button("🔄 Gerar novos palpites"):
     csv = out_df.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
 
+st.markdown("</div>", unsafe_allow_html=True)
+
 # ==== Card Aposta Aleatória ====
-st.markdown("""
-<div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:20px 0;'>"
+            "<h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>", unsafe_allow_html=True)
 
 if st.button("🎰 SORTEAR APOSTA ALEATÓRIA"):
     metade = n_escolhas // 2
@@ -313,23 +309,27 @@ if st.button("🎰 SORTEAR APOSTA ALEATÓRIA"):
     ) + "</div>"
     st.markdown(dezenas_html, unsafe_allow_html=True)
 
-# ==== Card Últimos 5 Concursos ====
-st.markdown("""
-<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
+# ==== Card Últimos 5 Concursos ====
+html_concursos = """
+<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:20px 0;'>
+    <h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>
+"""
 ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
     dezenas_html = "<div class='balls'>" + "".join(
         [f"<div class='ball'>{int(d)}</div>" for d in dezenas]
     ) + "</div>"
-    st.markdown(
-        f"<div style='margin-bottom:12px;'><b>Concurso {row['concurso']} ({row['data']})</b><br>{dezenas_html}</div>",
-        unsafe_allow_html=True
-    )
+    html_concursos += f"""
+    <div style='margin-bottom:12px;'>
+        <b>Concurso {row['concurso']} ({row['data']})</b><br>
+        {dezenas_html}
+    </div>
+    """
+html_concursos += "</div>"
+st.markdown(html_concursos, unsafe_allow_html=True)
 
 # ==== Estilo bolas ====
 st.markdown("""
