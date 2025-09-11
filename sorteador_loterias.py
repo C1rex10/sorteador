@@ -269,7 +269,7 @@ ultimo_content = f"""
     <span>Concurso: {ultimo['concurso']}</span>
     <span>Data: {ultimo['data']}</span>
     <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
-</div>
+
 <h4>DEZENAS SORTEADAS:</h4>
 <div class='balls'>{dezenas_html}
 """
