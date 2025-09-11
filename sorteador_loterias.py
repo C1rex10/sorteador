@@ -251,14 +251,12 @@ cols_dezenas = detect_number_cols(df, n_bolas)
 df_sorted = df.sort_values("concurso").reset_index(drop=True)
 draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
-
-# 🔧 Correção: calcula freq_df aqui
 freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
 # ==== Card Último Concurso ====
 st.markdown("""
-<div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0; background-color:#ecf6fc;'>
-    <h3 style='margin-top:0;'>📌 Último Concurso</h3>
+<div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0;'>
+    <h3 style='margin-top:0; color:#3498db;'>📌 Último Concurso</h3>
 </div>
 """, unsafe_allow_html=True)
 
@@ -301,13 +299,12 @@ st.markdown(dezenas_html, unsafe_allow_html=True)
 
 # ==== Card Palpites ====
 st.markdown("""
-<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0; background-color:#faf5ff;'>
-    <h3 style='margin-top:0;'>🧪 Palpites (baseados em números quentes)</h3>
+<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0;'>
+    <h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>
 </div>
 """, unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1)
-
 generated = []
 tries = 0
 limit_tries = n_palpites * 200
@@ -320,7 +317,6 @@ while len(generated) < n_palpites and tries < limit_tries:
 out_df = pd.DataFrame(generated, columns=[f"DEZENA {i}" for i in range(1, n_escolhas + 1)])
 out_df["SOMA"] = out_df.sum(axis=1)
 out_df["PARES"] = out_df.apply(lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0), axis=1)
-
 st.dataframe(out_df, use_container_width=True)
 
 csv = out_df.to_csv(index=False).encode("utf-8")
@@ -328,8 +324,8 @@ st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpite
 
 # ==== Card Aposta Aleatória ====
 st.markdown("""
-<div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0; background-color:#eafaf1;'>
-    <h3 style='margin-top:0;'>🎲 Gerar Aposta Aleatória</h3>
+<div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0;'>
+    <h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>
 </div>
 """, unsafe_allow_html=True)
 
@@ -342,8 +338,8 @@ if st.button("SORTEAR"):
 
 # ==== Card Últimos 5 Concursos ====
 st.markdown("""
-<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0; background-color:#fdecea;'>
-    <h3 style='margin-top:0;'>📅 Últimos 5 Concursos</h3>
+<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0;'>
+    <h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>
 </div>
 """, unsafe_allow_html=True)
 
