@@ -11,13 +11,13 @@ import streamlit as st
 # Constantes dos jogos
 # -----------------------------
 GAMES = {
-    "Mega-Sena": {
+    "MEGA-SENA": {
         "n_bolas": 60,
         "n_escolhas": 6,
         "min_colunas": 6,
         "api": "https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena"
     },
-    "Lotofácil": {
+    "LOTOFÁCIL": {
         "n_bolas": 25,
         "n_escolhas": 15,
         "min_colunas": 15,
@@ -136,9 +136,9 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
 
     sec_key = None
     for k in data_home.keys():
-        if jogo == "Mega-Sena" and "mega" in k.lower():
+        if jogo == "MEGA-SENA" and "mega" in k.lower():
             sec_key = k; break
-        if jogo == "Lotofácil" and "facil" in k.lower():
+        if jogo == "LOTOFÁCIL" and "facil" in k.lower():
             sec_key = k; break
 
     section = data_home[sec_key]
@@ -201,13 +201,6 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     df = pd.DataFrame(rows).sort_values("concurso").reset_index(drop=True)
     return df
 
-def fetch_concurso(jogo: str, numero: int) -> dict | None:
-    url = f"{GAMES[jogo]['api']}/{numero}"
-    r = requests.get(url, timeout=30)
-    if r.status_code != 200:
-        return None
-    return r.json()
-
 # -----------------------------
 # Estratégia fixa: números quentes
 # -----------------------------
@@ -239,12 +232,12 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
 # -----------------------------
 # App
 # -----------------------------
-st.set_page_config(page_title="SORTEADOR MEGA-SENA & LOTOFÁCIL", page_icon="🎲", layout="wide")
+st.set_page_config(page_title="Sorteador Mega-Sena & Lotofácil", page_icon="🎲", layout="wide")
 st.title("🎲 SORTEADOR INTELIGENTE • MEGA-SENA & LOTOFÁCIL")
 st.caption("Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
 
 with st.sidebar:
-    jogo = st.selectbox("jogo", list(GAMES.keys()))
+    jogo = st.selectbox("JOGO", list(GAMES.keys()))
     n_bolas = GAMES[jogo]["n_bolas"]
     n_escolhas = GAMES[jogo]["n_escolhas"]
     st.write(f"FAIXA DEZENAS 1..{n_bolas} • QUANTIDADE POR VOLANTE: {n_escolhas}")
@@ -265,16 +258,17 @@ valor_premio = ultimo.get("valorPremio")
 
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
 ultimo_content = f"""
-<div style='display:flex; gap:40px; font-size:18px; font-weight:600; margin-bottom:12px;'>
+<div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
     <span>Data: {ultimo['data']}</span>
     <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
 </div>
-<h4 style='color:#3498db; margin-top:10px;'>DEZENAS SORTEADAS:</h4>
-<div class='balls'>{dezenas_html}</div>
+<h4 style='color:#3498db;'>DEZENAS SORTEADAS:</h4>
+<div class='balls'>
+    {dezenas_html}
+</div>
 """
 st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
-
 
 # ==== Palpites ====
 palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
@@ -312,16 +306,8 @@ ultimos_html = ""
 ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
-    dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
-    ultimo_content = f"""
-    <div style='display:flex; gap:40px; font-size:18px; font-weight:600; margin-bottom:12px;'>
-        <span>Concurso: {ultimo['concurso']}</span>
-        <span>Data: {ultimo['data']}</span>
-        <span style='color:#f1c40f;'>Prêmio: R$ {valor_premio:,}</span>
-    </div>
-    <h4 style='color:#3498db; margin-top:10px;'>Dezenas sorteadas:</h4>
-    <div class='balls'>{dezenas_html}</div>
-    """
+    dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas])
+    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div></div>"
 
 st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
 
