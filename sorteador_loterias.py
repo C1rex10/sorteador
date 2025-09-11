@@ -290,9 +290,6 @@ dezenas_html = "<div class='balls'>" + "".join(
 ) + "</div>"
 st.markdown(dezenas_html, unsafe_allow_html=True)
 
-# ==== Últimos 5 concursos ====
-
-
 # ==== Consulta concurso passado ====
 if consultar and concurso_input > 0:
     st.subheader(f"📌 Resultado do Concurso {int(concurso_input)} ({jogo})")
@@ -349,6 +346,16 @@ st.dataframe(out_df, use_container_width=True)
 csv = out_df.to_csv(index=False).encode("utf-8")
 st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
 
+# ==== Sorteio aleatório extra ====
+st.subheader("🎲 GERAR APOSTA ALEATÓRIA")
+if st.button("SORTEAR"):
+    aposta_aleatoria = sorted(random.sample(range(1, n_bolas + 1), n_escolhas))
+    dezenas_html = "<div class='balls'>" + "".join(
+        [f"<div class='ball'>{int(d)}</div>" for d in aposta_aleatoria]
+    ) + "</div>"
+    st.markdown(dezenas_html, unsafe_allow_html=True)
+
+# ==== Últimos 5 concursos ====
 st.markdown("### 📅 Últimos 5 concursos")
 ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
@@ -370,6 +377,3 @@ st.markdown("""
     📌 Criado e desenvolvido por <b>Diogo Amaral</b> todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
-
-
-
