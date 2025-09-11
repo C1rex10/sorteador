@@ -265,15 +265,16 @@ valor_premio = ultimo.get("valorPremio")
 
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
 ultimo_content = f"""
-<div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:6px;'>
+<div style='display:flex; gap:40px; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
     <span>Data: {ultimo['data']}</span>
     <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
 </div>
-<h4>DEZENAS SORTEADAS:</h4>
-<div class='balls'>{dezenas_html}
+<h4 style='color:#3498db; margin-top:10px;'>DEZENAS SORTEADAS:</h4>
+<div class='balls'>{dezenas_html}</div>
 """
 st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
+
 
 # ==== Palpites ====
 palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
