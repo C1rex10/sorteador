@@ -256,7 +256,7 @@ freq_df = frequency_stats(draws, n_bolas=n_bolas)
 # ==== Card Último Concurso ====
 st.markdown("""
 <div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0;'>
-    <h3 style='margin-top:0; color:#3498db;'>📌 Último Concurso</h3>
+    <h3 style='margin-top:0;'>📌 Último Concurso</h3>
 </div>
 """, unsafe_allow_html=True)
 
@@ -300,36 +300,41 @@ st.markdown(dezenas_html, unsafe_allow_html=True)
 # ==== Card Palpites ====
 st.markdown("""
 <div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>
+    <h3 style='margin-top:0;'>🧪 Palpites (baseados em números quentes)</h3>
 </div>
 """, unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1)
-generated = []
-tries = 0
-limit_tries = n_palpites * 200
-while len(generated) < n_palpites and tries < limit_tries:
-    tries += 1
-    combo = gen_weighted(freq_df, n_escolhas, power=1.2)
-    if passes_constraints(combo, already_drawn=already_drawn):
-        generated.append(sorted(list(combo)))
 
-out_df = pd.DataFrame(generated, columns=[f"DEZENA {i}" for i in range(1, n_escolhas + 1)])
-out_df["SOMA"] = out_df.sum(axis=1)
-out_df["PARES"] = out_df.apply(lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0), axis=1)
-st.dataframe(out_df, use_container_width=True)
+if st.button("Gerar Palpites"):
+    generated = []
+    tries = 0
+    limit_tries = n_palpites * 200
+    while len(generated) < n_palpites and tries < limit_tries:
+        tries += 1
+        combo = gen_weighted(freq_df, n_escolhas, power=1.2)
+        if passes_constraints(combo, already_drawn=already_drawn):
+            generated.append(sorted(list(combo)))
 
-csv = out_df.to_csv(index=False).encode("utf-8")
-st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
+    out_df = pd.DataFrame(generated, columns=[f"DEZENA {i}" for i in range(1, n_escolhas + 1)])
+    out_df["SOMA"] = out_df.sum(axis=1)
+    out_df["PARES"] = out_df.apply(lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0), axis=1)
+
+    st.dataframe(out_df, use_container_width=True)
+
+    csv = out_df.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
+else:
+    st.info("Clique em **Gerar Palpites** para ver novas combinações.")
 
 # ==== Card Aposta Aleatória ====
 st.markdown("""
 <div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>
+    <h3 style='margin-top:0;'>🎲 Gerar Aposta Aleatória</h3>
 </div>
 """, unsafe_allow_html=True)
 
-if st.button("SORTEAR"):
+if st.button("SORTEAR APOSTA"):
     aposta_aleatoria = sorted(random.sample(range(1, n_bolas + 1), n_escolhas))
     dezenas_html = "<div class='balls'>" + "".join(
         [f"<div class='ball'>{int(d)}</div>" for d in aposta_aleatoria]
@@ -339,7 +344,7 @@ if st.button("SORTEAR"):
 # ==== Card Últimos 5 Concursos ====
 st.markdown("""
 <div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>
+    <h3 style='margin-top:0;'>📅 Últimos 5 Concursos</h3>
 </div>
 """, unsafe_allow_html=True)
 
