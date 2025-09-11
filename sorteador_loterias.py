@@ -221,35 +221,16 @@ def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.0) -> Set[int]:
 # -----------------------------
 # Função para criar cards
 # -----------------------------
-def card_container(title: str, color: str, icon: str, content: str) -> str:
+# -----------------------------
+# Função para criar cards
+# -----------------------------
+def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     return f"""
     <div style='border:2px solid {color}; border-radius:10px; padding:16px; margin:18px 0;'>
         <h3 style='color:{color}; margin-top:0;'>{icon} {title}</h3>
-        <div style='margin-top:12px; font-size:16px;'>
-            {content}
-        </div>
+        {inner_html}
     </div>
     """
-
-# -----------------------------
-# App
-# -----------------------------
-st.set_page_config(page_title="Sorteador Mega-Sena & Lotofácil", page_icon="🎲", layout="wide")
-st.title("🎲 SORTEADOR INTELIGENTE • MEGA-SENA & LOTOFÁCIL")
-
-with st.sidebar:
-    jogo = st.selectbox("JOGO", list(GAMES.keys()))
-    n_bolas = GAMES[jogo]["n_bolas"]
-    n_escolhas = GAMES[jogo]["n_escolhas"]
-
-with st.spinner("Buscando resultados oficiais da CAIXA..."):
-    df = fetch_last6m(jogo)
-
-cols_dezenas = detect_number_cols(df, n_bolas)
-df_sorted = df.sort_values("concurso").reset_index(drop=True)
-draws = rows_to_sets(df_sorted, cols_dezenas)
-already_drawn = build_already_drawn(draws)
-freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
 # ==== Último Concurso ====
 ultimo = df_sorted.iloc[-1]
@@ -270,7 +251,7 @@ st.markdown(card_container("Último Concurso", "#3498db", "📌", ultimo_content
 
 # ==== Palpites ====
 palpite_content = """
-Defina a quantidade de palpites e clique no botão abaixo para gerar.
+<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>
 """
 st.markdown(card_container("Palpites (baseados em números quentes)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
 
@@ -291,7 +272,7 @@ if st.button("🔄 Gerar novos palpites"):
 
 # ==== Aposta Aleatória ====
 aposta_content = """
-Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.
+<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>
 """
 st.markdown(card_container("Gerar Aposta Aleatória", "#27ae60", "🎲", aposta_content), unsafe_allow_html=True)
 
@@ -329,11 +310,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==== Rodapé ====
-rodape_content = """
-⚠️ Este app usa estatísticas históricas apenas para entretenimento.  
-As loterias da CAIXA são aleatórias.  
-
+# ==== Rodapé (fora de card) ====
+st.markdown("""
+<hr>
+<div style='text-align:center; padding:10px; font-size:14px; color:gray;'>
+⚠️ Este app usa estatísticas históricas apenas para entretenimento.<br>
+As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
-"""
-st.markdown(card_container("Informações", "gray", "ℹ️", rodape_content), unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
+
+
