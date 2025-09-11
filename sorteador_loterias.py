@@ -11,13 +11,13 @@ import streamlit as st
 # Constantes dos jogos
 # -----------------------------
 GAMES = {
-    "MEGA-SENA": {
+    "Mega-Sena": {
         "n_bolas": 60,
         "n_escolhas": 6,
         "min_colunas": 6,
         "api": "https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena"
     },
-    "LOTOFÁCIL": {
+    "Lotofácil": {
         "n_bolas": 25,
         "n_escolhas": 15,
         "min_colunas": 15,
@@ -239,7 +239,7 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
 # -----------------------------
 # App
 # -----------------------------
-st.set_page_config(page_title="Sorteador Mega-Sena & Lotofácil", page_icon="🎲", layout="wide")
+st.set_page_config(page_title="SORTEADOR MEGA-SENA & LOTOFÁCIL", page_icon="🎲", layout="wide")
 st.title("🎲 SORTEADOR INTELIGENTE • MEGA-SENA & LOTOFÁCIL")
 st.caption("Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
 
