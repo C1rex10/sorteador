@@ -240,7 +240,7 @@ draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
 freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
-# ==== CSS bolinhas ====
+# ==== CSS bolinhas e cards ====
 st.markdown("""
 <style>
 .balls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
@@ -253,22 +253,24 @@ st.markdown("""
 .ball:nth-child(6n+4){background:#f39c12}
 .ball:nth-child(6n+5){background:#e74c3c}
 .ball:nth-child(6n+6){background:#2ecc71}
-.card{border:2px solid; border-radius:10px; padding:15px; margin:20px 0;}
-.blue{border-color:#3498db;}
-.purple{border-color:#9b59b6;}
-.green{border-color:#27ae60;}
-.red{border-color:#e74c3c;}
+.card{border:2px solid; border-radius:10px; padding:20px; margin:20px 0;}
+.card-title{text-align:center; font-size:22px; font-weight:700; margin-bottom:15px;}
+.blue{border-color:#3498db; color:#3498db;}
+.purple{border-color:#9b59b6; color:#9b59b6;}
+.green{border-color:#27ae60; color:#27ae60;}
+.red{border-color:#e74c3c; color:#e74c3c;}
 </style>
 """, unsafe_allow_html=True)
 
 # ==== Card Último Concurso ====
 with st.container():
     st.markdown("<div class='card blue'>", unsafe_allow_html=True)
+    st.markdown("<div class='card-title'>📌 Último Concurso</div>", unsafe_allow_html=True)
+
     ultimo = df_sorted.iloc[-1]
     dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
     valor_premio = ultimo.get("valorPremio")
 
-    st.markdown("<h3 style='margin-top:0; color:#3498db;'>📌 Último Concurso</h3>", unsafe_allow_html=True)
     colA, colB, colC = st.columns([1,1,1])
     colA.markdown(f"**Concurso:** {ultimo['concurso']}")
     colB.markdown(f"**Data:** {ultimo['data']}")
@@ -281,7 +283,7 @@ with st.container():
 # ==== Card Palpites ====
 with st.container():
     st.markdown("<div class='card purple'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='card-title'>🧪 Palpites (baseados em números quentes)</div>", unsafe_allow_html=True)
 
     n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="qtd_palpites")
 
@@ -312,7 +314,7 @@ with st.container():
 # ==== Card Aposta Aleatória ====
 with st.container():
     st.markdown("<div class='card green'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='card-title'>🎲 Gerar Aposta Aleatória</div>", unsafe_allow_html=True)
 
     if st.button("🎰 SORTEAR APOSTA ALEATÓRIA", key="btn_aleatoria"):
         metade = n_escolhas // 2
@@ -329,7 +331,7 @@ with st.container():
 # ==== Card Últimos 5 Concursos ====
 with st.container():
     st.markdown("<div class='card red'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='card-title'>📅 Últimos 5 Concursos</div>", unsafe_allow_html=True)
 
     ultimos5 = df_sorted.tail(5)
     for _, row in ultimos5.iterrows():
