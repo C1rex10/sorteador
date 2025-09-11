@@ -150,7 +150,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
         if k in section and section[k]:
             num = _to_int_any(section[k]); break
     if not num:
-        st.error(f"Não achei número do concurso em {sec_key}.")
+        st.error(f"Não achei número do concurso em {sec_key}. Campos: {list(section.keys())}")
         st.stop()
 
     dt_ap = None
@@ -158,7 +158,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
         if k in section and section[k]:
             dt_ap = _parse_date_any(section[k]); break
     if not dt_ap:
-        st.error(f"Não achei data em {sec_key}.")
+        st.error(f"Não achei data em {sec_key}. Campos: {list(section.keys())}")
         st.stop()
 
     base_url = GAMES[jogo]["api"]
@@ -201,6 +201,13 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     df = pd.DataFrame(rows).sort_values("concurso").reset_index(drop=True)
     return df
 
+def fetch_concurso(jogo: str, numero: int) -> dict | None:
+    url = f"{GAMES[jogo]['api']}/{numero}"
+    r = requests.get(url, timeout=30)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
 # -----------------------------
 # Estratégia fixa: números quentes
 # -----------------------------
@@ -221,9 +228,6 @@ def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.0) -> Set[int]:
 # -----------------------------
 # Função para criar cards
 # -----------------------------
-# -----------------------------
-# Função para criar cards
-# -----------------------------
 def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     return f"""
     <div style='border:2px solid {color}; border-radius:10px; padding:16px; margin:18px 0;'>
@@ -231,6 +235,28 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
         {inner_html}
     </div>
     """
+
+# -----------------------------
+# App
+# -----------------------------
+st.set_page_config(page_title="Sorteador Mega-Sena & Lotofácil", page_icon="🎲", layout="wide")
+st.title("🎲 SORTEADOR INTELIGENTE • MEGA-SENA & LOTOFÁCIL")
+st.caption("Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
+
+with st.sidebar:
+    jogo = st.selectbox("JOGO", list(GAMES.keys()))
+    n_bolas = GAMES[jogo]["n_bolas"]
+    n_escolhas = GAMES[jogo]["n_escolhas"]
+    st.write(f"FAIXA DEZENAS 1..{n_bolas} • QUANTIDADE POR VOLANTE: {n_escolhas}")
+
+with st.spinner("Buscando resultados oficiais da CAIXA..."):
+    df = fetch_last6m(jogo)
+
+cols_dezenas = detect_number_cols(df, n_bolas)
+df_sorted = df.sort_values("concurso").reset_index(drop=True)
+draws = rows_to_sets(df_sorted, cols_dezenas)
+already_drawn = build_already_drawn(draws)
+freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
 # ==== Último Concurso ====
 ultimo = df_sorted.iloc[-1]
@@ -250,9 +276,7 @@ ultimo_content = f"""
 st.markdown(card_container("Último Concurso", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
 
 # ==== Palpites ====
-palpite_content = """
-<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>
-"""
+palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
 st.markdown(card_container("Palpites (baseados em números quentes)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
@@ -271,9 +295,7 @@ if st.button("🔄 Gerar novos palpites"):
                        file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
 
 # ==== Aposta Aleatória ====
-aposta_content = """
-<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>
-"""
+aposta_content = "<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>"
 st.markdown(card_container("Gerar Aposta Aleatória", "#27ae60", "🎲", aposta_content), unsafe_allow_html=True)
 
 if st.button("🎰 SORTEAR APOSTA ALEATÓRIA"):
@@ -310,7 +332,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==== Rodapé (fora de card) ====
+# ==== Rodapé ====
 st.markdown("""
 <hr>
 <div style='text-align:center; padding:10px; font-size:14px; color:gray;'>
@@ -319,5 +341,3 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
-
-
