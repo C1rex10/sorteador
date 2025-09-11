@@ -252,7 +252,16 @@ df_sorted = df.sort_values("concurso").reset_index(drop=True)
 draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
 
-# ==== Cabeçalho visual do último concurso ====
+# 🔧 Correção: calcula freq_df aqui
+freq_df = frequency_stats(draws, n_bolas=n_bolas)
+
+# ==== Card Último Concurso ====
+st.markdown("""
+<div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0; background-color:#ecf6fc;'>
+    <h3 style='margin-top:0;'>📌 Último Concurso</h3>
+</div>
+""", unsafe_allow_html=True)
+
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
 acumulado = ultimo.get("acumulado")
@@ -290,42 +299,13 @@ dezenas_html = "<div class='balls'>" + "".join(
 ) + "</div>"
 st.markdown(dezenas_html, unsafe_allow_html=True)
 
-# ==== Consulta concurso passado ====
-if consultar and concurso_input > 0:
-    st.subheader(f"📌 Resultado do Concurso {int(concurso_input)} ({jogo})")
-    data = fetch_concurso(jogo, int(concurso_input))
-    if data:
-        dezenas = None
-        for k in ("listaDezenas", "dezenas", "resultadoOrdenado", "listaDezenasOrdemSorteio"):
-            if k in data and data[k]:
-                dezenas = [int(d) for d in data[k]]
-                break
-        data_ap = data.get("dataApuracao") or data.get("data") or "?"
-        st.markdown(f"**Data:** {data_ap}")
+# ==== Card Palpites ====
+st.markdown("""
+<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0; background-color:#faf5ff;'>
+    <h3 style='margin-top:0;'>🧪 Palpites (baseados em números quentes)</h3>
+</div>
+""", unsafe_allow_html=True)
 
-        if dezenas:
-            dezenas_html = "<div class='balls'>" + "".join(
-                [f"<div class='ball'>{int(d)}</div>" for d in dezenas]
-            ) + "</div>"
-            st.markdown(dezenas_html, unsafe_allow_html=True)
-        else:
-            st.warning("Não foi possível obter as dezenas deste concurso.")
-    else:
-        st.error("Concurso não encontrado na API da CAIXA.")
-
-# ==== Análises ====
-st.header("📊 ANÁLISES")
-freq_df = frequency_stats(draws, n_bolas=n_bolas)
-c1, c2 = st.columns(2)
-with c1:
-    st.subheader("Top frequências (quentes)")
-    st.dataframe(freq_df.head(20), use_container_width=True)
-with c2:
-    st.subheader("Frequências baixas (frias)")
-    st.dataframe(freq_df.tail(20), use_container_width=True)
-
-# ==== Palpites ====
-st.header("🧪 PALPITES (baseados em números quentes)")
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1)
 
 generated = []
@@ -346,8 +326,13 @@ st.dataframe(out_df, use_container_width=True)
 csv = out_df.to_csv(index=False).encode("utf-8")
 st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
 
-# ==== Sorteio aleatório extra ====
-st.subheader("🎲 GERAR APOSTA ALEATÓRIA")
+# ==== Card Aposta Aleatória ====
+st.markdown("""
+<div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0; background-color:#eafaf1;'>
+    <h3 style='margin-top:0;'>🎲 Gerar Aposta Aleatória</h3>
+</div>
+""", unsafe_allow_html=True)
+
 if st.button("SORTEAR"):
     aposta_aleatoria = sorted(random.sample(range(1, n_bolas + 1), n_escolhas))
     dezenas_html = "<div class='balls'>" + "".join(
@@ -355,8 +340,13 @@ if st.button("SORTEAR"):
     ) + "</div>"
     st.markdown(dezenas_html, unsafe_allow_html=True)
 
-# ==== Últimos 5 concursos ====
-st.markdown("### 📅 Últimos 5 concursos")
+# ==== Card Últimos 5 Concursos ====
+st.markdown("""
+<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0; background-color:#fdecea;'>
+    <h3 style='margin-top:0;'>📅 Últimos 5 Concursos</h3>
+</div>
+""", unsafe_allow_html=True)
+
 ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
@@ -368,12 +358,11 @@ for _, row in ultimos5.iterrows():
         unsafe_allow_html=True
     )
 
-st.caption("⚠️ Este app usa estatísticas históricas apenas para entretenimento. As loterias da CAIXA são aleatórias.")
-
 # ==== Rodapé ====
+st.caption("⚠️ Este app usa estatísticas históricas apenas para entretenimento. As loterias da CAIXA são aleatórias.")
 st.markdown("""
 <hr>
 <div style='text-align:center; padding:10px; font-size:14px; color:gray;'>
-    📌 Criado e desenvolvido por <b>Diogo Amaral</b> todos os direitos reservados
+    📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
