@@ -11,13 +11,13 @@ import streamlit as st
 # Constantes dos jogos
 # -----------------------------
 GAMES = {
-    "Mega-Sena": {
+    "MEGA-SENA": {
         "n_bolas": 60,
         "n_escolhas": 6,
         "min_colunas": 6,
         "api": "https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena"
     },
-    "Lotofácil": {
+    "LOTOFÁCIL": {
         "n_bolas": 25,
         "n_escolhas": 15,
         "min_colunas": 15,
@@ -268,19 +268,19 @@ ultimo_content = f"""
 <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
     <span>Data: {ultimo['data']}</span>
-    <span style='color:#f1c40f;'>Prêmio: R$ {valor_premio:,}</span>
+    <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
 </div>
-<h4>Dezenas sorteadas:</h4>
-<div class='balls'>{dezenas_html}</div>
+<h4>DEZENAS SORTEADAS:</h4>
+<div class='balls'>{dezenas_html}
 """
-st.markdown(card_container("Último Concurso", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
+st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
 
 # ==== Palpites ====
 palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
-st.markdown(card_container("Palpites (baseados em números quentes)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
+st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
-if st.button("🔄 Gerar novos palpites"):
+if st.button("🔄 GERAR PALPITES"):
     generated, tries = [], 0
     while len(generated) < n_palpites and tries < n_palpites*200:
         tries += 1
@@ -296,9 +296,9 @@ if st.button("🔄 Gerar novos palpites"):
 
 # ==== Aposta Aleatória ====
 aposta_content = "<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>"
-st.markdown(card_container("Gerar Aposta Aleatória", "#27ae60", "🎲", aposta_content), unsafe_allow_html=True)
+st.markdown(card_container("GERAR APOSTA ALEATÓRIA", "#27ae60", "🎲", aposta_content), unsafe_allow_html=True)
 
-if st.button("🎰 SORTEAR APOSTA ALEATÓRIA"):
+if st.button("🎰 SORTEAR ALEATÓRIA"):
     metade = n_escolhas // 2
     quentes = freq_df.head(20)["dezena"].tolist()
     frios = freq_df.tail(20)["dezena"].tolist()
@@ -312,9 +312,9 @@ ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
     dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas])
-    ultimos_html += f"<div style='margin-bottom:12px;'><b>Concurso {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div></div>"
+    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['DATA']})</b><br><div class='balls'>{dezenas_html}</div></div>"
 
-st.markdown(card_container("Últimos 5 Concursos", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
+st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
 
 # ==== Estilo bolas ====
 st.markdown("""
