@@ -129,6 +129,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
                 pass
         return pd.to_datetime(s, dayfirst=True).to_pydatetime()
 
+    # pega último resultado
     home_url = "https://servicebus2.caixa.gov.br/portaldeloterias/api/home/ultimos-resultados"
     r = requests.get(home_url, timeout=30)
     r.raise_for_status()
@@ -246,38 +247,36 @@ cols_dezenas = detect_number_cols(df, n_bolas)
 df_sorted = df.sort_values("concurso").reset_index(drop=True)
 draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
-
 freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
 # ==== Card Último Concurso ====
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
+acumulado = ultimo.get("acumulado")
 valor_premio = ultimo.get("valorPremio")
 
-st.markdown(f"""
+html_ultimo = f"""
 <div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0;'>
     <h3 style='margin-top:0; color:#3498db;'>📌 Último Concurso</h3>
-    <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin:10px 0;'>
+    <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600;'>
         <span>Concurso: {ultimo['concurso']}</span>
         <span>Data: {ultimo['data']}</span>
-        <span style='color:#f1c40f;'>Prêmio: R$ {valor_premio:,}</span>
+        <span style='color:#f1c40f'>Prêmio: R$ {valor_premio:,}</span>
     </div>
     <h4>Dezenas sorteadas:</h4>
     <div class='balls'>
         {''.join([f"<div class='ball'>{int(d)}</div>" for d in dezenas_ultimo])}
     </div>
 </div>
-""", unsafe_allow_html=True)
+"""
+st.markdown(html_ultimo, unsafe_allow_html=True)
 
 # ==== Card Palpites ====
-st.markdown("""
-<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:20px 0;'>"
+            "<h3 style='color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>", unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1)
-if st.button("🔄 Gerar novos palpites"):
+if st.button("Gerar novos palpites"):
     generated = []
     tries = 0
     limit_tries = n_palpites * 200
@@ -292,46 +291,50 @@ if st.button("🔄 Gerar novos palpites"):
     out_df["PARES"] = out_df.apply(lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0), axis=1)
 
     st.dataframe(out_df, use_container_width=True)
-
     csv = out_df.to_csv(index=False).encode("utf-8")
-    st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
+    st.download_button("⬇️ Baixar palpites (CSV)", data=csv,
+                       file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ==== Card Aposta Aleatória ====
-st.markdown("""
-<div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0;'>
+html_random = """
+<div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:20px 0;'>
     <h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>
 </div>
-""", unsafe_allow_html=True)
+"""
+st.markdown(html_random, unsafe_allow_html=True)
 
-if st.button("🎰 SORTEAR APOSTA ALEATÓRIA"):
-    metade = n_escolhas // 2
-    quentes = freq_df.head(20)["dezena"].tolist()
-    frios = freq_df.tail(20)["dezena"].tolist()
-    aposta_aleatoria = sorted(random.sample(quentes, metade) + random.sample(frios, n_escolhas - metade))
+if st.button("SORTEAR"):
+    aposta_aleatoria = sorted(random.sample(range(1, n_bolas + 1), n_escolhas))
     dezenas_html = "<div class='balls'>" + "".join(
         [f"<div class='ball'>{int(d)}</div>" for d in aposta_aleatoria]
     ) + "</div>"
     st.markdown(dezenas_html, unsafe_allow_html=True)
 
 # ==== Card Últimos 5 Concursos ====
-st.markdown("""
-<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0;'>
-    <h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>
-</div>
-""", unsafe_allow_html=True)
-
 ultimos5 = df_sorted.tail(5)
+
+html_concursos = """
+<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:20px 0;'>
+    <h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>
+"""
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
     dezenas_html = "<div class='balls'>" + "".join(
         [f"<div class='ball'>{int(d)}</div>" for d in dezenas]
     ) + "</div>"
-    st.markdown(
-        f"<div style='margin-bottom:12px;'><b>Concurso {row['concurso']} ({row['data']})</b><br>{dezenas_html}</div>",
-        unsafe_allow_html=True
-    )
+    html_concursos += f"""
+    <div style='margin-bottom:12px;'>
+        <b>Concurso {row['concurso']} ({row['data']})</b><br>
+        {dezenas_html}
+    </div>
+    """
+html_concursos += "</div>"
 
-# ==== Estilo bolas ====
+st.markdown(html_concursos, unsafe_allow_html=True)
+
+# ==== CSS para bolas ====
 st.markdown("""
 <style>
 .balls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
