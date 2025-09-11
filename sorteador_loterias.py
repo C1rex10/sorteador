@@ -252,7 +252,13 @@ df_sorted = df.sort_values("concurso").reset_index(drop=True)
 draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
 
-# ==== Cabeçalho visual do último concurso ====
+# ==== Último Concurso ====
+st.markdown("""
+<div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin-bottom:20px; background-color:#f8f9fa;'>
+    <h3 style='margin-top:0;'>📌 Último Concurso</h3>
+</div>
+""", unsafe_allow_html=True)
+
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
 acumulado = ultimo.get("acumulado")
@@ -260,29 +266,14 @@ valor_premio = ultimo.get("valorPremio")
 
 col1, col2, col3 = st.columns([1, 1, 1])
 with col1:
-    st.markdown(f"<div style='font-size:22px; font-weight:700;'>Concurso: {ultimo['concurso']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:20px; font-weight:700;'>Concurso: {ultimo['concurso']}</div>", unsafe_allow_html=True)
 with col2:
-    st.markdown(f"<div style='font-size:22px; font-weight:700;'>Data: {ultimo['data']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:20px; font-weight:700;'>Data: {ultimo['data']}</div>", unsafe_allow_html=True)
 with col3:
     if acumulado:
-        st.markdown(f"<div style='font-size:22px; font-weight:700; color:#f1c40f'>💰 Acumulado</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:20px; font-weight:700; color:#f1c40f'>💰 Acumulado</div>", unsafe_allow_html=True)
     if valor_premio:
-        st.markdown(f"<div style='font-size:20px;'>Prêmio: R$ {valor_premio:,}</div>", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
-.balls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.ball{width:44px;height:44px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-weight:700;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
-.ball:nth-child(6n+1){background:#1abc9c}
-.ball:nth-child(6n+2){background:#3498db}
-.ball:nth-child(6n+3){background:#9b59b6}
-.ball:nth-child(6n+4){background:#f39c12}
-.ball:nth-child(6n+5){background:#e74c3c}
-.ball:nth-child(6n+6){background:#2ecc71}
-</style>
-""", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:18px;'>Prêmio: R$ {valor_premio:,}</div>", unsafe_allow_html=True)
 
 st.markdown("<h4>Dezenas sorteadas:</h4>", unsafe_allow_html=True)
 dezenas_html = "<div class='balls'>" + "".join(
@@ -290,42 +281,13 @@ dezenas_html = "<div class='balls'>" + "".join(
 ) + "</div>"
 st.markdown(dezenas_html, unsafe_allow_html=True)
 
-# ==== Consulta concurso passado ====
-if consultar and concurso_input > 0:
-    st.subheader(f"📌 Resultado do Concurso {int(concurso_input)} ({jogo})")
-    data = fetch_concurso(jogo, int(concurso_input))
-    if data:
-        dezenas = None
-        for k in ("listaDezenas", "dezenas", "resultadoOrdenado", "listaDezenasOrdemSorteio"):
-            if k in data and data[k]:
-                dezenas = [int(d) for d in data[k]]
-                break
-        data_ap = data.get("dataApuracao") or data.get("data") or "?"
-        st.markdown(f"**Data:** {data_ap}")
-
-        if dezenas:
-            dezenas_html = "<div class='balls'>" + "".join(
-                [f"<div class='ball'>{int(d)}</div>" for d in dezenas]
-            ) + "</div>"
-            st.markdown(dezenas_html, unsafe_allow_html=True)
-        else:
-            st.warning("Não foi possível obter as dezenas deste concurso.")
-    else:
-        st.error("Concurso não encontrado na API da CAIXA.")
-
-# ==== Análises ====
-st.header("📊 ANÁLISES")
-freq_df = frequency_stats(draws, n_bolas=n_bolas)
-c1, c2 = st.columns(2)
-with c1:
-    st.subheader("Top frequências (quentes)")
-    st.dataframe(freq_df.head(20), use_container_width=True)
-with c2:
-    st.subheader("Frequências baixas (frias)")
-    st.dataframe(freq_df.tail(20), use_container_width=True)
-
 # ==== Palpites ====
-st.header("🧪 PALPITES (baseados em números quentes)")
+st.markdown("""
+<div style='border:2px solid #9b59b6; border-radius:10px; padding:15px; margin:30px 0; background-color:#faf5ff;'>
+    <h3 style='margin-top:0;'>🧪 Palpites (baseados em números quentes)</h3>
+</div>
+""", unsafe_allow_html=True)
+
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1)
 
 generated = []
@@ -347,8 +309,13 @@ csv = out_df.to_csv(index=False).encode("utf-8")
 st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
 
 # ==== Sorteio aleatório extra ====
-st.subheader("🎲 GERAR APOSTA ALEATÓRIA")
-if st.button("SORTEAR"):
+st.markdown("""
+<div style='border:2px solid #2ecc71; border-radius:10px; padding:15px; margin:30px 0; background-color:#f8fff8;'>
+    <h3 style='margin-top:0;'>🎲 Gerar Aposta Aleatória</h3>
+</div>
+""", unsafe_allow_html=True)
+
+if st.button("Sortear aposta aleatória"):
     aposta_aleatoria = sorted(random.sample(range(1, n_bolas + 1), n_escolhas))
     dezenas_html = "<div class='balls'>" + "".join(
         [f"<div class='ball'>{int(d)}</div>" for d in aposta_aleatoria]
@@ -356,7 +323,12 @@ if st.button("SORTEAR"):
     st.markdown(dezenas_html, unsafe_allow_html=True)
 
 # ==== Últimos 5 concursos ====
-st.markdown("### 📅 Últimos 5 concursos")
+st.markdown("""
+<div style='border:2px solid #e74c3c; border-radius:10px; padding:15px; margin:30px 0; background-color:#fff5f5;'>
+    <h3 style='margin-top:0;'>📅 Últimos 5 Concursos</h3>
+</div>
+""", unsafe_allow_html=True)
+
 ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
