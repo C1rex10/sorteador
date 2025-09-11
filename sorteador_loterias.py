@@ -312,7 +312,7 @@ ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
     dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas])
-    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div></div>"
+    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div>"
 
 st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
 
