@@ -254,7 +254,7 @@ ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
 valor_premio = ultimo.get("valorPremio")
 
-card_ultimo = f"""
+st.markdown(f"""
 <div style='border:2px solid #3498db; border-radius:10px; padding:15px; margin:20px 0;'>
     <h3 style='margin-top:0; color:#3498db;'>📌 Último Concurso</h3>
     <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin:10px 0;'>
@@ -267,8 +267,7 @@ card_ultimo = f"""
         {''.join([f"<div class='ball'>{int(d)}</div>" for d in dezenas_ultimo])}
     </div>
 </div>
-"""
-st.markdown(card_ultimo, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ==== Card Palpites ====
 st.markdown("""
@@ -298,12 +297,11 @@ if st.button("🔄 Gerar novos palpites"):
     st.download_button("⬇️ Baixar palpites (CSV)", data=csv, file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
 
 # ==== Card Aposta Aleatória ====
-card_random = """
+st.markdown("""
 <div style='border:2px solid #27ae60; border-radius:10px; padding:15px; margin:30px 0;'>
     <h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>
 </div>
-"""
-st.markdown(card_random, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 if st.button("🎰 SORTEAR APOSTA ALEATÓRIA"):
     metade = n_escolhas // 2
