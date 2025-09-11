@@ -311,8 +311,16 @@ ultimos_html = ""
 ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
-    dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas])
-    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div>"
+    dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
+    ultimo_content = f"""
+    <div style='display:flex; gap:40px; font-size:18px; font-weight:600; margin-bottom:12px;'>
+        <span>Concurso: {ultimo['concurso']}</span>
+        <span>Data: {ultimo['data']}</span>
+        <span style='color:#f1c40f;'>Prêmio: R$ {valor_premio:,}</span>
+    </div>
+    <h4 style='color:#3498db; margin-top:10px;'>Dezenas sorteadas:</h4>
+    <div class='balls'>{dezenas_html}</div>
+    """
 
 st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
 
