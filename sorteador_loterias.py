@@ -253,11 +253,17 @@ st.markdown("""
 .ball:nth-child(6n+4){background:#f39c12}
 .ball:nth-child(6n+5){background:#e74c3c}
 .ball:nth-child(6n+6){background:#2ecc71}
+.card{border:2px solid; border-radius:10px; padding:15px; margin:20px 0;}
+.blue{border-color:#3498db;}
+.purple{border-color:#9b59b6;}
+.green{border-color:#27ae60;}
+.red{border-color:#e74c3c;}
 </style>
 """, unsafe_allow_html=True)
 
-# ==== Card Último Concurso (container com borda) ====
-with st.container(border=True):
+# ==== Card Último Concurso ====
+with st.container():
+    st.markdown("<div class='card blue'>", unsafe_allow_html=True)
     ultimo = df_sorted.iloc[-1]
     dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
     valor_premio = ultimo.get("valorPremio")
@@ -270,9 +276,11 @@ with st.container(border=True):
 
     st.markdown("**Dezenas sorteadas:**")
     st.markdown("<div class='balls'>" + "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo]) + "</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==== Card Palpites ====
-with st.container(border=True):
+with st.container():
+    st.markdown("<div class='card purple'>", unsafe_allow_html=True)
     st.markdown("<h3 style='margin-top:0; color:#9b59b6;'>🧪 Palpites (baseados em números quentes)</h3>", unsafe_allow_html=True)
 
     n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="qtd_palpites")
@@ -299,9 +307,11 @@ with st.container(border=True):
         st.download_button("⬇️ Baixar palpites (CSV)", data=csv,
                            file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv",
                            mime="text/csv")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# ==== Card Aposta Aleatória (tudo dentro do card) ====
-with st.container(border=True):
+# ==== Card Aposta Aleatória ====
+with st.container():
+    st.markdown("<div class='card green'>", unsafe_allow_html=True)
     st.markdown("<h3 style='margin-top:0; color:#27ae60;'>🎲 Gerar Aposta Aleatória</h3>", unsafe_allow_html=True)
 
     if st.button("🎰 SORTEAR APOSTA ALEATÓRIA", key="btn_aleatoria"):
@@ -314,9 +324,11 @@ with st.container(border=True):
     if "aposta_aleatoria" in st.session_state:
         a = st.session_state["aposta_aleatoria"]
         st.markdown("<div class='balls'>" + "".join([f"<div class='ball'>{int(d)}</div>" for d in a]) + "</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# ==== Card Últimos 5 Concursos (sem HTML cru) ====
-with st.container(border=True):
+# ==== Card Últimos 5 Concursos ====
+with st.container():
+    st.markdown("<div class='card red'>", unsafe_allow_html=True)
     st.markdown("<h3 style='margin-top:0; color:#e74c3c;'>📅 Últimos 5 Concursos</h3>", unsafe_allow_html=True)
 
     ultimos5 = df_sorted.tail(5)
@@ -326,6 +338,8 @@ with st.container(border=True):
         st.markdown(f"**Concurso {row['concurso']} ({row['data']})**", unsafe_allow_html=True)
         st.markdown(f"<div class='balls'>{dezenas_html}</div>", unsafe_allow_html=True)
         st.markdown("<hr style='opacity:.08;'>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==== Rodapé ====
 st.caption("⚠️ Este app usa estatísticas históricas apenas para entretenimento. As loterias da CAIXA são aleatórias.")
