@@ -251,13 +251,16 @@ draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
 freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
+
 # ==== Último Concurso ====
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
 valor_premio = ultimo.get("valorPremio")
 
+# monta as dezenas em HTML
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
 
+# conteúdo do card sem </div> extra
 ultimo_content = f"""
 <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
@@ -266,9 +269,13 @@ ultimo_content = f"""
 </div>
 <h4 style='color:#3498db;'>DEZENAS SORTEADAS:</h4>
 <div class='balls'>{dezenas_html}</div>
-"""  # 🔹 removido </div> extra
+"""  # ⬅️ removido fechamento extra
 
-st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
+st.markdown(
+    card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content),
+    unsafe_allow_html=True
+)
+
 
 # ==== Palpites ====
 palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
@@ -336,3 +343,4 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
+
