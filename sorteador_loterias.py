@@ -257,6 +257,7 @@ dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns
 valor_premio = ultimo.get("valorPremio")
 
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
+
 ultimo_content = f"""
 <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
@@ -264,10 +265,9 @@ ultimo_content = f"""
     <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
 </div>
 <h4 style='color:#3498db;'>DEZENAS SORTEADAS:</h4>
-<div class='balls'>
-    {dezenas_html}
-</div>
-"""
+<div class='balls'>{dezenas_html}</div>
+"""  # 🔹 removido </div> extra
+
 st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
 
 # ==== Palpites ====
@@ -297,7 +297,7 @@ if st.button("🎰 SORTEAR ALEATÓRIA"):
     metade = n_escolhas // 2
     quentes = freq_df.head(20)["dezena"].tolist()
     frios = freq_df.tail(20)["dezena"].tolist()
-    aposta = sorted(random.sample(quentes, metade) + random.sample(frios, n_escolhas - metade))
+    aposta = sorted(random.sample(list(set(quentes)), metade) + random.sample(list(set(frios)), n_escolhas - metade))
     st.markdown("<div class='balls'>" + "".join([f"<div class='ball'>{d}</div>" for d in aposta]) + "</div>",
                 unsafe_allow_html=True)
 
