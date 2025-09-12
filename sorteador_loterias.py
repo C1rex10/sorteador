@@ -25,7 +25,6 @@ GAMES = {
     },
 }
 
-
 # -----------------------------
 # Utilidades
 # -----------------------------
@@ -36,29 +35,26 @@ def detect_number_cols(df: pd.DataFrame, n_bolas: int) -> List[str]:
     if cols:
         return sorted(cols, key=lambda x: int(x[1:]))
 
-    # 2) Fallback (se algum dia o schema mudar): heurística mais rígida
+    # 2) Fallback heurístico (se algum dia mudar o schema da API)
     candidate_cols = []
     for col in df.columns:
         series = pd.to_numeric(df[col], errors="coerce").dropna().astype(int)
         if series.empty:
             continue
-        # proporção alta de inteiros no intervalo 1..n_bolas
         ratio = ((series >= 1) & (series <= n_bolas)).mean()
-        if ratio >= 0.95 and series.nunique() >= 10:  # evita binárias como 0/1
+        if ratio >= 0.95 and series.nunique() >= 10:
             candidate_cols.append(col)
     return candidate_cols
 
 
-
-def rows_to_sets(df: pd.DataFrame, cols: List[str]) -> List[Set[int]]:
+def rows_to_sets(df: pd.DataFrame, cols: List[str], n_bolas: int) -> List[Set[int]]:
     jogos = []
     for _, row in df[cols].iterrows():
         vals = pd.to_numeric(row, errors="coerce").dropna().astype(int).tolist()
-        vals = [v for v in vals if 1 <= v <= n_bolas]  # <-- filtra 1..n_bolas
+        vals = [v for v in vals if 1 <= v <= n_bolas]  # filtra 1..n_bolas
         if len(vals) >= 1:
             jogos.append(set(vals))
     return jogos
-
 
 
 def frequency_stats(draws: List[Set[int]], n_bolas: int, recency_decay: float = None) -> pd.DataFrame:
@@ -125,6 +121,18 @@ def build_already_drawn(draws: List[Set[int]]) -> Set[Tuple[int, ...]]:
     return {tuple(sorted(d)) for d in draws}
 
 
+def format_brl(v):
+    if v is None or (isinstance(v, float) and np.isnan(v)):
+        return "—"
+    s = str(v).strip().replace("R$", "")
+    s = s.replace(".", "").replace(",", ".")
+    try:
+        num = float(s)
+    except Exception:
+        return str(v)
+    return f"{num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 # -----------------------------
 # API oficial CAIXA
 # -----------------------------
@@ -154,10 +162,10 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     sec_key = None
     for k in data_home.keys():
         if jogo == "MEGA-SENA" and "mega" in k.lower():
-            sec_key = k;
+            sec_key = k
             break
         if jogo == "LOTOFÁCIL" and "facil" in k.lower():
-            sec_key = k;
+            sec_key = k
             break
 
     section = data_home[sec_key]
@@ -167,7 +175,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     num = None
     for k in ("numero", "concurso", "numeroConcurso", "concursoNumero", "numeroDoConcurso"):
         if k in section and section[k]:
-            num = _to_int_any(section[k]);
+            num = _to_int_any(section[k])
             break
     if not num:
         st.error(f"Não achei número do concurso em {sec_key}. Campos: {list(section.keys())}")
@@ -176,7 +184,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     dt_ap = None
     for k in ("dataApuracao", "data", "dtApuracao", "data_sorteio"):
         if k in section and section[k]:
-            dt_ap = _parse_date_any(section[k]);
+            dt_ap = _parse_date_any(section[k])
             break
     if not dt_ap:
         st.error(f"Não achei data em {sec_key}. Campos: {list(section.keys())}")
@@ -196,7 +204,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
         data_ap = None
         for k in ("dataApuracao", "data", "dtApuracao"):
             if k in data and data[k]:
-                data_ap = _parse_date_any(data[k]);
+                data_ap = _parse_date_any(data[k])
                 break
         if not data_ap:
             data_ap = dt_ap
@@ -212,17 +220,18 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
         if dezenas is None:
             continue
 
-        row = {"concurso": _to_int_any(data.get("numero", data.get("numeroDoConcurso", num_conc))),
-               "data": data_ap.strftime("%d/%m/%Y"),
-               "acumulado": data.get("acumulado"),
-               "valorPremio": data.get("valorEstimadoProximoConcurso")}
+        row = {
+            "concurso": _to_int_any(data.get("numero", data.get("numeroDoConcurso", num_conc))),
+            "data": data_ap.strftime("%d/%m/%Y"),
+            "acumulado": data.get("acumulado"),
+            "valorPremio": data.get("valorEstimadoProximoConcurso") or data.get("valorPremio")
+        }
         for i, d in enumerate(dezenas, start=1):
             row[f"d{i}"] = d
         rows.append(row)
 
     df = pd.DataFrame(rows).sort_values("concurso").reset_index(drop=True)
     return df
-
 
 # -----------------------------
 # Estratégia fixa: números quentes
@@ -241,7 +250,6 @@ def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.0) -> Set[int]:
         del weights[idx]
     return chosen
 
-
 # -----------------------------
 # Função para criar cards
 # -----------------------------
@@ -250,17 +258,14 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     <div style='border:2px solid {color}; border-radius:10px; padding:16px; margin:18px 0;'>
         <h3 style='color:{color}; margin-top:0;'>{icon} {title}</h3>
         {inner_html}
-
     """
-
 
 # -----------------------------
 # App
 # -----------------------------
 st.set_page_config(page_title="Sorteador Mega-Sena & Lotofácil", page_icon="🎲", layout="wide")
 st.title("🎲 SORTEADOR INTELIGENTE • MEGA-SENA & LOTOFÁCIL")
-st.caption(
-    "Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
+st.caption("Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
 
 with st.sidebar:
     jogo = st.selectbox("JOGO", list(GAMES.keys()))
@@ -273,7 +278,7 @@ with st.spinner("Buscando resultados oficiais da CAIXA..."):
 
 cols_dezenas = detect_number_cols(df, n_bolas)
 df_sorted = df.sort_values("concurso").reset_index(drop=True)
-draws = rows_to_sets(df_sorted, cols_dezenas)
+draws = rows_to_sets(df_sorted, cols_dezenas, n_bolas)
 already_drawn = build_already_drawn(draws)
 freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
@@ -285,26 +290,22 @@ valor_premio = ultimo.get("valorPremio")
 # monta as dezenas em HTML
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
 
-# conteúdo do card sem </div> extra
+# conteúdo do card
 ultimo_content = f"""
 <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
     <span>Data: {ultimo['data']}</span>
-    <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:.}</span>
+    <span style='color:#f1c40f;'>PRÊMIO: R$ {format_brl(valor_premio)}</span>
 </div>
 <h4 style='color:#3498db;'>DEZENAS SORTEADAS:</h4>
 <div class='balls'>{dezenas_html}</div>
-"""  # ⬅️ removido fechamento extra
+"""
 
-st.markdown(
-    card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content),
-    unsafe_allow_html=True
-)
+st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
 
 # ==== Palpites ====
 palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
-st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content),
-            unsafe_allow_html=True)
+st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
 if st.button("🔄 GERAR PALPITES"):
@@ -330,13 +331,11 @@ if st.button("🎰 SORTEAR ALEATÓRIA"):
     quentes = freq_df.head(20)["dezena"].tolist()
     frios = freq_df.tail(20)["dezena"].tolist()
 
-    # garante que não peça mais do que existe na lista
     escolhidos_quentes = random.sample(quentes, min(metade, len(quentes)))
     escolhidos_frios = random.sample(frios, min(n_escolhas - metade, len(frios)))
 
     escolhidos = set(escolhidos_quentes + escolhidos_frios)
 
-    # completa se ainda faltar números
     todas_dezenas = list(range(1, n_bolas + 1))
     while len(escolhidos) < n_escolhas:
         escolhidos.add(random.choice(todas_dezenas))
@@ -383,8 +382,3 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
-
-
-
-
-
