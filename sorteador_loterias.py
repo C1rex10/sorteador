@@ -124,13 +124,27 @@ def build_already_drawn(draws: List[Set[int]]) -> Set[Tuple[int, ...]]:
 def format_brl(v):
     if v is None or (isinstance(v, float) and np.isnan(v)):
         return "—"
-    s = str(v).strip().replace("R$", "")
-    s = s.replace(".", "").replace(",", ".")
-    try:
-        num = float(s)
-    except Exception:
-        return str(v)
+
+    # Se já for número
+    if isinstance(v, (int, float)):
+        num = float(v)
+    else:
+        s = str(v).strip().replace("R$", "")
+
+        # Caso padrão da API: "1800000.00"
+        if s.isdigit() or s.replace(".", "", 1).isdigit():
+            num = float(s)
+        else:
+            # caso venha no estilo brasileiro: "1.800.000,00"
+            s = s.replace(".", "").replace(",", ".")
+            try:
+                num = float(s)
+            except Exception:
+                return str(v)
+
+    # Formata para moeda BR
     return f"{num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 
 
 # -----------------------------
@@ -382,3 +396,4 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
+
