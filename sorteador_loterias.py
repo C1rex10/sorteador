@@ -305,19 +305,24 @@ if st.button("🎰 SORTEAR ALEATÓRIA"):
     quentes = freq_df.head(20)["dezena"].tolist()
     frios = freq_df.tail(20)["dezena"].tolist()
 
-    # 🔹 Garante que não haja números repetidos entre quentes e frios
-    frios = [n for n in frios if n not in quentes]
+    # garante que não peça mais do que existe na lista
+    escolhidos_quentes = random.sample(quentes, min(metade, len(quentes)))
+    escolhidos_frios = random.sample(frios, min(n_escolhas - metade, len(frios)))
 
-    # 🔹 Sorteio sem repetição
-    escolhidos_quentes = random.sample(quentes, metade)
-    escolhidos_frios = random.sample(frios, n_escolhas - metade)
+    escolhidos = set(escolhidos_quentes + escolhidos_frios)
 
-    aposta = sorted(escolhidos_quentes + escolhidos_frios)
+    # completa se ainda faltar números
+    todas_dezenas = list(range(1, n_bolas + 1))
+    while len(escolhidos) < n_escolhas:
+        escolhidos.add(random.choice(todas_dezenas))
+
+    aposta = sorted(escolhidos)
 
     st.markdown(
         "<div class='balls'>" + "".join([f"<div class='ball'>{d}</div>" for d in aposta]) + "</div>",
         unsafe_allow_html=True
     )
+
 
 
 # ==== Últimos 5 Concursos ====
@@ -355,6 +360,7 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
