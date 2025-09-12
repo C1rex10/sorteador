@@ -257,6 +257,7 @@ dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns
 valor_premio = ultimo.get("valorPremio")
 
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
+
 ultimo_content = f"""
 <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
@@ -265,8 +266,50 @@ ultimo_content = f"""
 </div>
 <h4 style='color:#3498db;'>DEZENAS SORTEADAS:</h4>
 <div class='balls'>{dezenas_html}</div>
-"""
+"""  # 🔹 removido </div> extra
+
 st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
+
+# ==== Palpites ====
+palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
+st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
+
+n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
+if st.button("🔄 GERAR PALPITES"):
+    generated, tries = [], 0
+    while len(generated) < n_palpites and tries < n_palpites*200:
+        tries += 1
+        combo = gen_weighted(freq_df, n_escolhas, power=1.2)
+        if passes_constraints(combo, already_drawn=already_drawn):
+            generated.append(sorted(list(combo)))
+    out_df = pd.DataFrame(generated, columns=[f"DEZENA {i}" for i in range(1, n_escolhas + 1)])
+    out_df["SOMA"] = out_df.sum(axis=1)
+    out_df["PARES"] = out_df.apply(lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0), axis=1)
+    st.dataframe(out_df, use_container_width=True)
+    st.download_button("⬇️ Baixar palpites (CSV)", out_df.to_csv(index=False).encode("utf-8"),
+                       file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
+
+# ==== Aposta Aleatória ====
+aposta_content = "<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>"
+st.markdown(card_container("GERAR APOSTA ALEATÓRIA", "#27ae60", "🎲", aposta_content), unsafe_allow_html=True)
+
+if st.button("🎰 SORTEAR ALEATÓRIA"):
+    metade = n_escolhas // 2
+    quentes = freq_df.head(20)["dezena"].tolist()
+    frios = freq_df.tail(20)["dezena"].tolist()
+    aposta = sorted(random.sample(list(set(quentes)), metade) + random.sample(list(set(frios)), n_escolhas - metade))
+    st.markdown("<div class='balls'>" + "".join([f"<div class='ball'>{d}</div>" for d in aposta]) + "</div>",
+                unsafe_allow_html=True)
+
+# ==== Últimos 5 Concursos ====
+ultimos_html = ""
+ultimos5 = df_sorted.tail(5)
+for _, row in ultimos5.iterrows():
+    dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
+    dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas])
+    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div></div>"
+
+st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
 
 # ==== Estilo bolas ====
 st.markdown("""
