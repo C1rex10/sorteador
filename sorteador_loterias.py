@@ -25,27 +25,41 @@ GAMES = {
     },
 }
 
+
 # -----------------------------
 # Utilidades
 # -----------------------------
 def detect_number_cols(df: pd.DataFrame, n_bolas: int) -> List[str]:
+    import re
+    # 1) Preferir explicitamente colunas no formato d1, d2, ...
+    cols = [c for c in df.columns if re.fullmatch(r"d\d+", c)]
+    if cols:
+        return sorted(cols, key=lambda x: int(x[1:]))
+
+    # 2) Fallback (se algum dia o schema mudar): heurística mais rígida
     candidate_cols = []
     for col in df.columns:
-        series = pd.to_numeric(df[col], errors="coerce")
-        valid = series.dropna().astype(float)
-        if len(valid) == 0:
+        series = pd.to_numeric(df[col], errors="coerce").dropna().astype(int)
+        if series.empty:
             continue
-        if ((valid % 1 == 0) & (valid >= 1) & (valid <= n_bolas)).mean() >= 0.7:
+        # proporção alta de inteiros no intervalo 1..n_bolas
+        ratio = ((series >= 1) & (series <= n_bolas)).mean()
+        if ratio >= 0.95 and series.nunique() >= 10:  # evita binárias como 0/1
             candidate_cols.append(col)
     return candidate_cols
+
+
 
 def rows_to_sets(df: pd.DataFrame, cols: List[str]) -> List[Set[int]]:
     jogos = []
     for _, row in df[cols].iterrows():
         vals = pd.to_numeric(row, errors="coerce").dropna().astype(int).tolist()
+        vals = [v for v in vals if 1 <= v <= n_bolas]  # <-- filtra 1..n_bolas
         if len(vals) >= 1:
             jogos.append(set(vals))
     return jogos
+
+
 
 def frequency_stats(draws: List[Set[int]], n_bolas: int, recency_decay: float = None) -> pd.DataFrame:
     freq = np.zeros(n_bolas + 1, dtype=float)
@@ -72,6 +86,7 @@ def frequency_stats(draws: List[Set[int]], n_bolas: int, recency_decay: float = 
     df["pct"] = df["freq"] / max(1, len(draws))
     df = df.sort_values(["freq_ponderada", "freq", "dezena"], ascending=[False, False, True]).reset_index(drop=True)
     return df
+
 
 def passes_constraints(combo: Set[int],
                        already_drawn: Set[Tuple[int, ...]] = None,
@@ -105,8 +120,10 @@ def passes_constraints(combo: Set[int],
             return False
     return True
 
+
 def build_already_drawn(draws: List[Set[int]]) -> Set[Tuple[int, ...]]:
     return {tuple(sorted(d)) for d in draws}
+
 
 # -----------------------------
 # API oficial CAIXA
@@ -137,9 +154,11 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     sec_key = None
     for k in data_home.keys():
         if jogo == "MEGA-SENA" and "mega" in k.lower():
-            sec_key = k; break
+            sec_key = k;
+            break
         if jogo == "LOTOFÁCIL" and "facil" in k.lower():
-            sec_key = k; break
+            sec_key = k;
+            break
 
     section = data_home[sec_key]
     if isinstance(section, list) and section:
@@ -148,7 +167,8 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     num = None
     for k in ("numero", "concurso", "numeroConcurso", "concursoNumero", "numeroDoConcurso"):
         if k in section and section[k]:
-            num = _to_int_any(section[k]); break
+            num = _to_int_any(section[k]);
+            break
     if not num:
         st.error(f"Não achei número do concurso em {sec_key}. Campos: {list(section.keys())}")
         st.stop()
@@ -156,7 +176,8 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     dt_ap = None
     for k in ("dataApuracao", "data", "dtApuracao", "data_sorteio"):
         if k in section and section[k]:
-            dt_ap = _parse_date_any(section[k]); break
+            dt_ap = _parse_date_any(section[k]);
+            break
     if not dt_ap:
         st.error(f"Não achei data em {sec_key}. Campos: {list(section.keys())}")
         st.stop()
@@ -175,7 +196,8 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
         data_ap = None
         for k in ("dataApuracao", "data", "dtApuracao"):
             if k in data and data[k]:
-                data_ap = _parse_date_any(data[k]); break
+                data_ap = _parse_date_any(data[k]);
+                break
         if not data_ap:
             data_ap = dt_ap
 
@@ -201,6 +223,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     df = pd.DataFrame(rows).sort_values("concurso").reset_index(drop=True)
     return df
 
+
 # -----------------------------
 # Estratégia fixa: números quentes
 # -----------------------------
@@ -218,6 +241,7 @@ def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.0) -> Set[int]:
         del weights[idx]
     return chosen
 
+
 # -----------------------------
 # Função para criar cards
 # -----------------------------
@@ -226,15 +250,17 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     <div style='border:2px solid {color}; border-radius:10px; padding:16px; margin:18px 0;'>
         <h3 style='color:{color}; margin-top:0;'>{icon} {title}</h3>
         {inner_html}
-    
+
     """
+
 
 # -----------------------------
 # App
 # -----------------------------
 st.set_page_config(page_title="Sorteador Mega-Sena & Lotofácil", page_icon="🎲", layout="wide")
 st.title("🎲 SORTEADOR INTELIGENTE • MEGA-SENA & LOTOFÁCIL")
-st.caption("Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
+st.caption(
+    "Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
 
 with st.sidebar:
     jogo = st.selectbox("JOGO", list(GAMES.keys()))
@@ -251,7 +277,6 @@ draws = rows_to_sets(df_sorted, cols_dezenas)
 already_drawn = build_already_drawn(draws)
 freq_df = frequency_stats(draws, n_bolas=n_bolas)
 
-
 # ==== Último Concurso ====
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
@@ -265,7 +290,7 @@ ultimo_content = f"""
 <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
     <span>Concurso: {ultimo['concurso']}</span>
     <span>Data: {ultimo['data']}</span>
-    <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
+    <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:.}</span>
 </div>
 <h4 style='color:#3498db;'>DEZENAS SORTEADAS:</h4>
 <div class='balls'>{dezenas_html}</div>
@@ -276,15 +301,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # ==== Palpites ====
 palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
-st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
+st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content),
+            unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
 if st.button("🔄 GERAR PALPITES"):
     generated, tries = [], 0
-    while len(generated) < n_palpites and tries < n_palpites*200:
+    while len(generated) < n_palpites and tries < n_palpites * 200:
         tries += 1
         combo = gen_weighted(freq_df, n_escolhas, power=1.2)
         if passes_constraints(combo, already_drawn=already_drawn):
@@ -323,8 +348,6 @@ if st.button("🎰 SORTEAR ALEATÓRIA"):
         unsafe_allow_html=True
     )
 
-
-
 # ==== Últimos 5 Concursos ====
 ultimos_html = ""
 ultimos5 = df_sorted.tail(5)
@@ -360,6 +383,7 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
