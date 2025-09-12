@@ -226,7 +226,7 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     <div style='border:2px solid {color}; border-radius:10px; padding:16px; margin:18px 0;'>
         <h3 style='color:{color}; margin-top:0;'>{icon} {title}</h3>
         {inner_html}
-    </div>
+    
     """
 
 # -----------------------------
@@ -343,4 +343,5 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
+
 
