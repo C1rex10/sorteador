@@ -260,18 +260,18 @@ dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
 
 ultimo_content = f"""
 <div style='display:flex; justify-content:space-between; font-size:18px; font-weight:600; margin-bottom:12px;'>
-    <span>Concurso: {ultimo['concurso']}</span>
-    <span>Data: {ultimo['data']}</span>
-    <span style='color:#f1c40f;'>PRÊMIO: R$ {valor_premio:,}</span>
+    <span><b>Concurso:</b> {ultimo['concurso']}</span>
+    <span><b>Data:</b> {ultimo['data']}</span>
+    <span style='color:#f1c40f;'><b>PRÊMIO:</b> R$ {valor_premio:,}</span>
 </div>
 <h4 style='color:#3498db;'>DEZENAS SORTEADAS:</h4>
 <div class='balls'>{dezenas_html}</div>
-"""  # 🔹 removido </div> extra
+"""  # ✅ corrigido: removido </div> extra
 
 st.markdown(card_container("ÚLTIMO CONCURSO", "#3498db", "📌", ultimo_content), unsafe_allow_html=True)
 
 # ==== Palpites ====
-palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
+palpite_content = "<h4 style='color:#9b59b6;'>PALPITES GERADOS:</h4><p>Defina a quantidade de palpites e clique no botão abaixo para gerar.</p>"
 st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
@@ -290,7 +290,7 @@ if st.button("🔄 GERAR PALPITES"):
                        file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
 
 # ==== Aposta Aleatória ====
-aposta_content = "<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>"
+aposta_content = "<h4 style='color:#27ae60;'>APOSTA GERADA:</h4><p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>"
 st.markdown(card_container("GERAR APOSTA ALEATÓRIA", "#27ae60", "🎲", aposta_content), unsafe_allow_html=True)
 
 if st.button("🎰 SORTEAR ALEATÓRIA"):
@@ -307,7 +307,7 @@ ultimos5 = df_sorted.tail(5)
 for _, row in ultimos5.iterrows():
     dezenas = [int(row[c]) for c in cols_dezenas if c in df_sorted.columns]
     dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas])
-    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div></div>"
+    ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><h4 style='color:#e74c3c;'>DEZENAS:</h4><div class='balls'>{dezenas_html}</div></div>"
 
 st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
 
