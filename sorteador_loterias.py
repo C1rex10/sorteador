@@ -162,19 +162,19 @@ def format_brl(v):
 
 def normalize_prize(valor, jogo: str):
     """
-    Corrige inconsistências da API da CAIXA.
-    Lotofácil às vezes retorna valor 10x maior.
+    Corrige erro sistêmico da API da CAIXA.
+    Para Lotofácil, TODOS os valores vêm 10x maiores.
     """
     try:
         v = float(valor)
     except Exception:
         return valor
 
-    # Regra defensiva: Lotofácil nunca passa de ~5 milhões
-    if jogo == "LOTOFÁCIL" and v > 5_000_000:
+    if jogo == "LOTOFÁCIL":
         v = v / 10
 
     return v
+
 
 
 # -----------------------------
