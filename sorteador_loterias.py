@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import streamlit as st
-
+import altair as alt
 # -----------------------------
 # Constantes dos jogos
 # -----------------------------
@@ -159,6 +159,22 @@ def format_brl(v):
     except Exception:
         return str(v)
     return f"{num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+def normalize_prize(valor, jogo: str):
+    """
+    Corrige inconsistências da API da CAIXA.
+    Lotofácil às vezes retorna valor 10x maior.
+    """
+    try:
+        v = float(valor)
+    except Exception:
+        return valor
+
+    # Regra defensiva: Lotofácil nunca passa de ~5 milhões
+    if jogo == "LOTOFÁCIL" and v > 5_000_000:
+        v = v / 10
+
+    return v
 
 
 # -----------------------------
@@ -334,7 +350,7 @@ freq_df = frequency_stats(
 # ==== Último Concurso ====
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
-valor_premio = ultimo.get("valorPremio")
+valor_premio = normalize_prize(ultimo.get("valorPremio"),jogo)
 
 # monta as dezenas em HTML
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
@@ -435,9 +451,35 @@ for _, row in ultimos5.iterrows():
 
 st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
 
-st.bar_chart(
-    quentes.set_index("dezena")["score_quente"]
+
+
+chart_data = quentes.copy()
+chart_data["dezena"] = chart_data["dezena"].astype(str)
+
+bars = alt.Chart(chart_data).mark_bar().encode(
+    x=alt.X("dezena:N", title="Dezena"),
+    y=alt.Y("score_quente:Q", title="Score de Calor"),
+    tooltip=["dezena", "score_quente"]
 )
+
+labels = alt.Chart(chart_data).mark_text(
+    dy=-5,
+    color="white",
+    fontSize=12
+).encode(
+    x="dezena:N",
+    y="score_quente:Q",
+    text=alt.Text("score_quente:Q", format=".2f")
+)
+
+st.altair_chart(
+    (bars + labels).properties(
+        height=320,
+        title="🔥 Ranking de Números Quentes"
+    ),
+    use_container_width=True
+)
+
 
 # ==== Estilo bolas ====
 st.markdown("""
