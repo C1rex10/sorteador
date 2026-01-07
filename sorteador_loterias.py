@@ -57,30 +57,44 @@ def rows_to_sets(df: pd.DataFrame, cols: List[str], n_bolas: int) -> List[Set[in
     return jogos
 
 
-def frequency_stats(draws: List[Set[int]], n_bolas: int, recency_decay: float = None) -> pd.DataFrame:
+def frequency_stats(draws: List[Set[int]],
+                    n_bolas: int,
+                    n_escolhas: int,
+                    recency_decay: float = 0.03) -> pd.DataFrame:
+
+    total_draws = len(draws)
+    esperado = total_draws * (n_escolhas / n_bolas)
+
     freq = np.zeros(n_bolas + 1, dtype=float)
     wfreq = np.zeros(n_bolas + 1, dtype=float)
-    if len(draws) == 0:
-        return pd.DataFrame({"dezena": [], "freq": [], "freq_ponderada": []})
-    for s in draws:
+
+    for i, s in enumerate(draws):
+        peso = np.exp(-recency_decay * (total_draws - 1 - i))
         for n in s:
             freq[n] += 1
-    if recency_decay is not None and recency_decay > 0:
-        for i, s in enumerate(draws):
-            power = (len(draws) - 1 - i)
-            w = np.exp(-recency_decay * power)
-            for n in s:
-                wfreq[n] += w
-    else:
-        wfreq = freq.copy()
+            wfreq[n] += peso
 
     df = pd.DataFrame({
-        "dezena": np.arange(1, n_bolas + 1, dtype=int),
+        "dezena": np.arange(1, n_bolas + 1),
         "freq": freq[1:],
-        "freq_ponderada": wfreq[1:],
+        "freq_recente": wfreq[1:]
     })
-    df["pct"] = df["freq"] / max(1, len(draws))
-    df = df.sort_values(["freq_ponderada", "freq", "dezena"], ascending=[False, False, True]).reset_index(drop=True)
+
+    # Desvio do esperado
+    df["desvio"] = df["freq"] - esperado
+
+    # Normalização (z-score suave)
+    df["z_freq"] = (df["freq"] - df["freq"].mean()) / (df["freq"].std() + 1e-6)
+    df["z_recente"] = (df["freq_recente"] - df["freq_recente"].mean()) / (df["freq_recente"].std() + 1e-6)
+
+    # Score final de calor
+    df["score_quente"] = (
+        0.55 * df["z_recente"] +
+        0.35 * df["z_freq"] +
+        0.10 * (df["desvio"] / esperado)
+    )
+
+    df = df.sort_values("score_quente", ascending=False).reset_index(drop=True)
     return df
 
 
@@ -124,27 +138,13 @@ def build_already_drawn(draws: List[Set[int]]) -> Set[Tuple[int, ...]]:
 def format_brl(v):
     if v is None or (isinstance(v, float) and np.isnan(v)):
         return "—"
-
-    # Se já for número
-    if isinstance(v, (int, float)):
-        num = float(v)
-    else:
-        s = str(v).strip().replace("R$", "")
-
-        # Caso padrão da API: "1800000.00"
-        if s.isdigit() or s.replace(".", "", 1).isdigit():
-            num = float(s)
-        else:
-            # caso venha no estilo brasileiro: "1.800.000,00"
-            s = s.replace(".", "").replace(",", ".")
-            try:
-                num = float(s)
-            except Exception:
-                return str(v)
-
-    # Formata para moeda BR
+    s = str(v).strip().replace("R$", "")
+    s = s.replace(".", "").replace(",", ".")
+    try:
+        num = float(s)
+    except Exception:
+        return str(v)
     return f"{num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
 
 
 # -----------------------------
@@ -250,18 +250,22 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
 # -----------------------------
 # Estratégia fixa: números quentes
 # -----------------------------
-def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.0) -> Set[int]:
+def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.4) -> Set[int]:
     pool = freq_df["dezena"].to_numpy()
-    w = (freq_df["freq_ponderada"].to_numpy() + 1e-6) ** power
+    w = np.maximum(freq_df["score_quente"].to_numpy(), 0) + 1e-6
+    w = w ** power
     w = w / w.sum()
+
     chosen = set()
     available = pool.tolist()
     weights = w.tolist()
+
     for _ in range(k):
-        idx = np.random.choice(np.arange(len(available)), p=np.array(weights) / sum(weights))
+        idx = np.random.choice(len(available), p=np.array(weights) / sum(weights))
         chosen.add(int(available[idx]))
         del available[idx]
         del weights[idx]
+
     return chosen
 
 # -----------------------------
@@ -396,4 +400,3 @@ As loterias da CAIXA são aleatórias.<br><br>
 📌 Criado e desenvolvido por <b>Diogo Amaral</b> — todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
-
