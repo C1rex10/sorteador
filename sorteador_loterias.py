@@ -268,8 +268,12 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
             "concurso": _to_int_any(data.get("numero", data.get("numeroDoConcurso", num_conc))),
             "data": data_ap.strftime("%d/%m/%Y"),
             "acumulado": data.get("acumulado"),
-            "valorPremio": data.get("valorEstimadoProximoConcurso") or data.get("valorPremio")
+            # prêmio REAL do concurso
+            "valorPremio": data.get("valorPremio"),
+            # prêmio estimado do próximo
+            "valorEstimado": data.get("valorEstimadoProximoConcurso")
         }
+
         for i, d in enumerate(dezenas, start=1):
             row[f"d{i}"] = d
         rows.append(row)
@@ -350,7 +354,13 @@ freq_df = frequency_stats(
 # ==== Último Concurso ====
 ultimo = df_sorted.iloc[-1]
 dezenas_ultimo = [int(ultimo[c]) for c in cols_dezenas if c in df_sorted.columns]
-valor_premio = normalize_prize(ultimo.get("valorPremio"),jogo)
+valor_premio = ultimo.get("valorPremio")
+
+if not valor_premio:
+    valor_premio = ultimo.get("valorEstimado")
+
+valor_premio = normalize_prize(valor_premio, jogo)
+
 
 # monta as dezenas em HTML
 dezenas_html = "".join([f"<div class='ball'>{d}</div>" for d in dezenas_ultimo])
