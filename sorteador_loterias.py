@@ -24,6 +24,20 @@ GAMES = {
         "api": "https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil"
     },
 }
+GAME_PARAMS = {
+    "MEGA-SENA": {
+        "recency_decay": 0.045,
+        "power": 1.6,
+        "top_quentes": 18,
+        "top_frios": 18
+    },
+    "LOTOFÁCIL": {
+        "recency_decay": 0.025,
+        "power": 1.25,
+        "top_quentes": 12,
+        "top_frios": 12
+    }
+}
 
 # -----------------------------
 # Utilidades
@@ -268,6 +282,14 @@ def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.4) -> Set[int]:
 
     return chosen
 
+def is_too_similar(combo: Set[int],
+                   existing: List[Set[int]],
+                   max_overlap: int) -> bool:
+    for prev in existing:
+        if len(combo & prev) >= max_overlap:
+            return True
+    return False
+
 # -----------------------------
 # Função para criar cards
 # -----------------------------
@@ -298,7 +320,15 @@ cols_dezenas = detect_number_cols(df, n_bolas)
 df_sorted = df.sort_values("concurso").reset_index(drop=True)
 draws = rows_to_sets(df_sorted, cols_dezenas, n_bolas)
 already_drawn = build_already_drawn(draws)
-freq_df = frequency_stats(draws, n_bolas=n_bolas)
+params = GAME_PARAMS[jogo]
+
+freq_df = frequency_stats(
+    draws,
+    n_bolas=n_bolas,
+    n_escolhas=n_escolhas,
+    recency_decay=params["recency_decay"]
+)
+
 
 # ==== Último Concurso ====
 ultimo = df_sorted.iloc[-1]
@@ -328,11 +358,23 @@ st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
 if st.button("🔄 GERAR PALPITES"):
     generated, tries = [], 0
+    generated_sets = []
+    max_overlap = n_escolhas - 2
+
     while len(generated) < n_palpites and tries < n_palpites * 200:
         tries += 1
-        combo = gen_weighted(freq_df, n_escolhas, power=1.2)
-        if passes_constraints(combo, already_drawn=already_drawn):
-            generated.append(sorted(list(combo)))
+        combo = gen_weighted(
+            freq_df,
+            n_escolhas,
+            power=params["power"])
+
+        if (
+                passes_constraints(combo, already_drawn=already_drawn)
+                and not is_too_similar(combo, generated_sets, max_overlap)
+        ):
+            generated.append(sorted(combo))
+            generated_sets.append(set(combo))
+
     out_df = pd.DataFrame(generated, columns=[f"DEZENA {i}" for i in range(1, n_escolhas + 1)])
     out_df["SOMA"] = out_df.sum(axis=1)
     out_df["PARES"] = out_df.apply(lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0), axis=1)
@@ -364,6 +406,23 @@ if st.button("🎰 SORTEAR ALEATÓRIA"):
         "<div class='balls'>" + "".join([f"<div class='ball'>{d}</div>" for d in aposta]) + "</div>",
         unsafe_allow_html=True
     )
+st.subheader("🔥 NÚMEROS QUENTES")
+
+quentes = freq_df.head(params["top_quentes"])
+
+st.dataframe(
+    quentes[["dezena", "freq", "score_quente"]],
+    use_container_width=True
+)
+
+st.subheader("❄️ NÚMEROS FRIOS")
+
+frios = freq_df.tail(params["top_frios"]).sort_values("score_quente")
+
+st.dataframe(
+    frios[["dezena", "freq", "score_quente"]],
+    use_container_width=True
+)
 
 # ==== Últimos 5 Concursos ====
 ultimos_html = ""
@@ -374,6 +433,10 @@ for _, row in ultimos5.iterrows():
     ultimos_html += f"<div style='margin-bottom:12px;'><b>CONCURSO {row['concurso']} ({row['data']})</b><br><div class='balls'>{dezenas_html}</div></div>"
 
 st.markdown(card_container("ÚLTIMOS 5 CONCURSOS", "#e74c3c", "📅", ultimos_html), unsafe_allow_html=True)
+
+st.bar_chart(
+    quentes.set_index("dezena")["score_quente"]
+)
 
 # ==== Estilo bolas ====
 st.markdown("""
