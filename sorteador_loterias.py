@@ -329,7 +329,12 @@ st.title("🎲 SORTEADOR INTELIGENTE • MEGA-SENA & LOTOFÁCIL")
 st.caption("Gera palpites com base nos últimos sorteios da **CAIXA**. Uso recreativo — loterias são aleatórias; não há garantia de ganho.")
 
 with st.sidebar:
-    jogo = st.selectbox("JOGO", list(GAMES.keys()))
+    jogos = list(GAMES.keys())
+    jogo = st.selectbox(
+        "JOGO",
+        jogos,
+        index=jogos.index("LOTOFÁCIL"))
+
     n_bolas = GAMES[jogo]["n_bolas"]
     n_escolhas = GAMES[jogo]["n_escolhas"]
     st.write(f"FAIXA DEZENAS 1..{n_bolas} • QUANTIDADE POR VOLANTE: {n_escolhas}")
@@ -384,30 +389,64 @@ st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", 
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
 if st.button("🔄 GERAR PALPITES"):
-    generated, tries = [], 0
+    generated = []
     generated_sets = []
-    max_overlap = n_escolhas - 2
 
-    while len(generated) < n_palpites and tries < n_palpites * 200:
+    # overlap inicial (70% das dezenas)
+    max_overlap = int(n_escolhas * 0.7)
+
+    tries = 0
+    max_tries = n_palpites * 300
+
+    # pool levemente ampliado para dar diversidade
+    freq_df_used = freq_df.head(params["top_quentes"] * 2)
+
+    while len(generated) < n_palpites and tries < max_tries:
         tries += 1
+
         combo = gen_weighted(
-            freq_df,
+            freq_df_used,
             n_escolhas,
-            power=params["power"])
+            power=params["power"]
+        )
 
         if (
-                passes_constraints(combo, already_drawn=already_drawn)
-                and not is_too_similar(combo, generated_sets, max_overlap)
+            passes_constraints(combo, already_drawn=already_drawn)
+            and not is_too_similar(combo, generated_sets, max_overlap)
         ):
             generated.append(sorted(combo))
             generated_sets.append(set(combo))
 
-    out_df = pd.DataFrame(generated, columns=[f"DEZENA {i}" for i in range(1, n_escolhas + 1)])
+        # fallback automático: afrouxa similaridade aos poucos
+        if tries % 200 == 0 and max_overlap < n_escolhas:
+            max_overlap += 1
+
+    if len(generated) < n_palpites:
+        st.warning(
+            f"⚠️ Foram gerados apenas {len(generated)} de {n_palpites} palpites. "
+            f"Filtros ficaram muito restritivos."
+        )
+
+    out_df = pd.DataFrame(
+        generated,
+        columns=[f"DEZENA {i}" for i in range(1, n_escolhas + 1)]
+    )
+
     out_df["SOMA"] = out_df.sum(axis=1)
-    out_df["PARES"] = out_df.apply(lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0), axis=1)
+    out_df["PARES"] = out_df.apply(
+        lambda r: sum(1 for x in r[:n_escolhas] if x % 2 == 0),
+        axis=1
+    )
+
     st.dataframe(out_df, use_container_width=True)
-    st.download_button("⬇️ Baixar palpites (CSV)", out_df.to_csv(index=False).encode("utf-8"),
-                       file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv", mime="text/csv")
+
+    st.download_button(
+        "⬇️ Baixar palpites (CSV)",
+        out_df.to_csv(index=False).encode("utf-8"),
+        file_name=f"palpites_{jogo.replace(' ', '').lower()}.csv",
+        mime="text/csv"
+    )
+
 
 # ==== Aposta Aleatória ====
 aposta_content = "<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>"
