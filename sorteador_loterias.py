@@ -310,7 +310,7 @@ def gen_weighted(freq_df: pd.DataFrame,
     # penaliza números já usados
     penalized_w = []
     for dez, w in zip(pool, base_w):
-        penalized_w.append(w / (1 + recent_usage.get(int(dez), 0)))
+        penalized_w.appendw / (1 + 0.35 * recent_usage.get(int(dez), 0))
 
     w = np.array(penalized_w)
     w = w / w.sum()
@@ -427,7 +427,8 @@ if st.button("🔄 GERAR PALPITES"):
     max_tries = n_palpites * 300
 
 
-    pool_size = int(n_bolas * 0.65)
+    pool_size = max(int(n_bolas * 0.80), n_escolhas + 5)
+
     freq_df_used = freq_df.head(pool_size)
 
     while len(generated) < n_palpites and tries < max_tries:
@@ -453,7 +454,6 @@ if st.button("🔄 GERAR PALPITES"):
                 recent_usage[d] += 1
 
         # fallback automático: afrouxa similaridade aos poucos
-        if tries % 200 == 0 and max_overlap < n_escolhas:
             max_overlap += 1
 
     if len(generated) < n_palpites:
