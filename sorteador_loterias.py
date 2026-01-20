@@ -446,8 +446,17 @@ if st.button("🔄 GERAR PALPITES"):
         )
 
         if (
-                passes_constraints(combo, already_drawn=already_drawn)
+                passes_constraints(
+                    combo,
+                    already_drawn=already_drawn if jogo == "MEGA-SENA" else None
+                )
+
+                and (
+                len(generated) < n_palpites * 0.7
                 and not is_too_similar(combo, generated_sets, max_overlap)
+                or len(generated) >= n_palpites * 0.7
+        )
+
         ):
             generated.append(sorted(combo))
             generated_sets.append(set(combo))
@@ -500,8 +509,12 @@ if st.button("🎰 SORTEAR ALEATÓRIA"):
     escolhidos = set(escolhidos_quentes + escolhidos_frios)
 
     todas_dezenas = list(range(1, n_bolas + 1))
-    while len(escolhidos) < n_escolhas:
-        escolhidos.add(random.choice(todas_dezenas))
+    # GARANTIA DE QUANTIDADE
+    while len(generated) < n_palpites:
+        combo = set(random.sample(range(1, n_bolas + 1), n_escolhas))
+        if combo not in generated_sets:
+            generated.append(sorted(combo))
+            generated_sets.append(combo)
 
     aposta = sorted(escolhidos)
 
