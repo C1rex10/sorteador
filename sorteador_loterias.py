@@ -436,8 +436,6 @@ if st.button("🔄 GERAR PALPITES"):
     while len(generated) < n_palpites and tries < max_tries:
         tries += 1
 
-        max_overlap = int(n_escolhas * np.interp(len(generated), [0, n_palpites], [0.5, 0.75]))
-
         combo = gen_weighted(
             freq_df_used,
             n_escolhas,
@@ -445,27 +443,16 @@ if st.button("🔄 GERAR PALPITES"):
             power=params["power"]
         )
 
-        if (
-                passes_constraints(
-                    combo,
-                    already_drawn=already_drawn if jogo == "MEGA-SENA" else None
-                )
-
-                and (
-                len(generated) < n_palpites * 0.7
-                and not is_too_similar(combo, generated_sets, max_overlap)
-                or len(generated) >= n_palpites * 0.7
-        )
-
+        # filtros leves (somente enquanto dá)
+        if passes_constraints(
+                combo,
+                already_drawn=already_drawn if jogo == "MEGA-SENA" else None
         ):
             generated.append(sorted(combo))
             generated_sets.append(set(combo))
 
-            for d in combo:  # 👈 AQUI
+            for d in combo:
                 recent_usage[d] += 1
-
-        # fallback automático: afrouxa similaridade aos poucos
-            max_overlap += 1
 
     if len(generated) < n_palpites:
         st.warning(
@@ -494,6 +481,7 @@ if st.button("🔄 GERAR PALPITES"):
     )
 
 
+
 # ==== Aposta Aleatória ====
 aposta_content = "<p>Clique no botão abaixo para gerar uma aposta misturando números quentes e frios.</p>"
 st.markdown(card_container("GERAR APOSTA ALEATÓRIA", "#27ae60", "🎲", aposta_content), unsafe_allow_html=True)
@@ -509,12 +497,6 @@ if st.button("🎰 SORTEAR ALEATÓRIA"):
     escolhidos = set(escolhidos_quentes + escolhidos_frios)
 
     todas_dezenas = list(range(1, n_bolas + 1))
-    # GARANTIA DE QUANTIDADE
-    while len(generated) < n_palpites:
-        combo = set(random.sample(range(1, n_bolas + 1), n_escolhas))
-        if combo not in generated_sets:
-            generated.append(sorted(combo))
-            generated_sets.append(combo)
 
     aposta = sorted(escolhidos)
 
