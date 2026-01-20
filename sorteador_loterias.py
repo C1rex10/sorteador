@@ -307,10 +307,11 @@ def gen_weighted(freq_df: pd.DataFrame,
     base_w = np.maximum(freq_df["score_quente"].to_numpy(), 0) + 1e-6
     base_w = base_w ** power
 
-    # penaliza números já usados
     penalized_w = []
     for dez, w in zip(pool, base_w):
-        penalized_w.appendw / (1 + 0.35 * recent_usage.get(int(dez), 0))
+        penalized_w.append(
+            w / (1 + 0.35 * recent_usage.get(int(dez), 0))
+        )
 
     w = np.array(penalized_w)
     w = w / w.sum()
@@ -328,6 +329,7 @@ def gen_weighted(freq_df: pd.DataFrame,
         del weights[idx]
 
     return chosen
+
 
 def is_too_similar(combo: Set[int],
                    existing: List[Set[int]],
