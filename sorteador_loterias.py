@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import altair as alt
+from collections import Counter
+
 # -----------------------------
 # Constantes dos jogos
 # -----------------------------
@@ -93,7 +95,6 @@ def frequency_stats(draws: List[Set[int]],
         "freq": freq[1:],
         "freq_recente": wfreq[1:]
     })
-
     # Desvio do esperado
     df["desvio"] = df["freq"] - esperado
 
@@ -284,10 +285,33 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
 # -----------------------------
 # Estratégia fixa: números quentes
 # -----------------------------
-def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.4) -> Set[int]:
+def gen_mixed(freq_df, n_escolhas, jogo):
+    quentes_n = int(n_escolhas * 0.45)
+    medios_n  = int(n_escolhas * 0.35)
+    livres_n  = n_escolhas - quentes_n - medios_n
+
+    quentes = gen_weighted(freq_df.head(20), quentes_n, power=1.3)
+    medios  = gen_weighted(freq_df.iloc[20:40], medios_n, power=1.0)
+    livres  = set(random.sample(range(1, GAMES[jogo]["n_bolas"]+1), livres_n))
+
+    return quentes | medios | livres
+
+
+def gen_weighted(freq_df: pd.DataFrame,
+                 k: int,
+                 recent_usage: dict,
+                 power: float = 1.4) -> Set[int]:
+
     pool = freq_df["dezena"].to_numpy()
-    w = np.maximum(freq_df["score_quente"].to_numpy(), 0) + 1e-6
-    w = w ** power
+    base_w = np.maximum(freq_df["score_quente"].to_numpy(), 0) + 1e-6
+    base_w = base_w ** power
+
+    # penaliza números já usados
+    penalized_w = []
+    for dez, w in zip(pool, base_w):
+        penalized_w.append(w / (1 + recent_usage.get(int(dez), 0)))
+
+    w = np.array(penalized_w)
     w = w / w.sum()
 
     chosen = set()
@@ -296,19 +320,14 @@ def gen_weighted(freq_df: pd.DataFrame, k: int, power: float = 1.4) -> Set[int]:
 
     for _ in range(k):
         idx = np.random.choice(len(available), p=np.array(weights) / sum(weights))
-        chosen.add(int(available[idx]))
+        d = int(available[idx])
+        chosen.add(d)
+
         del available[idx]
         del weights[idx]
 
     return chosen
 
-def is_too_similar(combo: Set[int],
-                   existing: List[Set[int]],
-                   max_overlap: int) -> bool:
-    for prev in existing:
-        if len(combo & prev) >= max_overlap:
-            return True
-    return False
 
 
 # -----------------------------
@@ -388,18 +407,25 @@ palpite_content = "<p>Defina a quantidade de palpites e clique no botão abaixo 
 st.markdown(card_container("PALPITES (BASEADO EM NÚMEROS QUENTES)", "#9b59b6", "🧪", palpite_content), unsafe_allow_html=True)
 
 n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpites")
+
+
+
 if st.button("🔄 GERAR PALPITES"):
+    recent_usage = Counter()   # 👈 AQUI
     generated = []
     generated_sets = []
 
+
     # overlap inicial (70% das dezenas)
-    max_overlap = int(n_escolhas * 0.7)
+    max_overlap = int(n_escolhas * np.interp(len(generated), [0, n_palpites], [0.5, 0.75]))
+
 
     tries = 0
     max_tries = n_palpites * 300
 
-    # pool levemente ampliado para dar diversidade
-    freq_df_used = freq_df.head(params["top_quentes"] * 2)
+
+    pool_size = int(n_bolas * 0.65)
+    freq_df_used = freq_df.head(pool_size)
 
     while len(generated) < n_palpites and tries < max_tries:
         tries += 1
@@ -407,15 +433,19 @@ if st.button("🔄 GERAR PALPITES"):
         combo = gen_weighted(
             freq_df_used,
             n_escolhas,
+            recent_usage,
             power=params["power"]
         )
 
         if (
-            passes_constraints(combo, already_drawn=already_drawn)
-            and not is_too_similar(combo, generated_sets, max_overlap)
+                passes_constraints(combo, already_drawn=already_drawn)
+                and not is_too_similar(combo, generated_sets, max_overlap)
         ):
             generated.append(sorted(combo))
             generated_sets.append(set(combo))
+
+            for d in combo:  # 👈 AQUI
+                recent_usage[d] += 1
 
         # fallback automático: afrouxa similaridade aos poucos
         if tries % 200 == 0 and max_overlap < n_escolhas:
