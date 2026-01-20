@@ -285,16 +285,17 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
 # -----------------------------
 # Estratégia fixa: números quentes
 # -----------------------------
-def gen_mixed(freq_df, n_escolhas, jogo):
+def gen_mixed(freq_df, n_escolhas, jogo, recent_usage):
     quentes_n = int(n_escolhas * 0.45)
     medios_n  = int(n_escolhas * 0.35)
     livres_n  = n_escolhas - quentes_n - medios_n
 
-    quentes = gen_weighted(freq_df.head(20), quentes_n, power=1.3)
-    medios  = gen_weighted(freq_df.iloc[20:40], medios_n, power=1.0)
-    livres  = set(random.sample(range(1, GAMES[jogo]["n_bolas"]+1), livres_n))
+    quentes = gen_weighted(freq_df.head(20), quentes_n, recent_usage, power=1.3)
+    medios  = gen_weighted(freq_df.iloc[20:40], medios_n, recent_usage, power=1.0)
+    livres  = set(random.sample(range(1, GAMES[jogo]["n_bolas"] + 1), livres_n))
 
     return quentes | medios | livres
+
 
 
 def gen_weighted(freq_df: pd.DataFrame,
@@ -328,6 +329,13 @@ def gen_weighted(freq_df: pd.DataFrame,
 
     return chosen
 
+def is_too_similar(combo: Set[int],
+                   existing: List[Set[int]],
+                   max_overlap: int) -> bool:
+    for prev in existing:
+        if len(combo & prev) >= max_overlap:
+            return True
+    return False
 
 
 # -----------------------------
@@ -415,11 +423,6 @@ if st.button("🔄 GERAR PALPITES"):
     generated = []
     generated_sets = []
 
-
-    # overlap inicial (70% das dezenas)
-    max_overlap = int(n_escolhas * np.interp(len(generated), [0, n_palpites], [0.5, 0.75]))
-
-
     tries = 0
     max_tries = n_palpites * 300
 
@@ -429,6 +432,8 @@ if st.button("🔄 GERAR PALPITES"):
 
     while len(generated) < n_palpites and tries < max_tries:
         tries += 1
+
+        max_overlap = int(n_escolhas * np.interp(len(generated), [0, n_palpites], [0.5, 0.75]))
 
         combo = gen_weighted(
             freq_df_used,
