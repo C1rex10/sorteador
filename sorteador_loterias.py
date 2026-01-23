@@ -340,9 +340,6 @@ def is_too_similar(combo: Set[int],
     return False
 
 
-# -----------------------------
-# Função para criar cards
-# -----------------------------
 def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     return f"""
     <div style='border:2px solid {color}; border-radius:10px; padding:16px; margin:18px 0;'>
@@ -423,7 +420,7 @@ n_palpites = st.number_input("Quantidade de palpites", 1, 200, 10, 1, key="palpi
 if st.button("🔄 GERAR PALPITES"):
     recent_usage = Counter()   # 👈 AQUI
     generated = []
-    generated_sets = []
+    generated_sets = set()
 
     tries = 0
     max_tries = n_palpites * 300
@@ -443,15 +440,34 @@ if st.button("🔄 GERAR PALPITES"):
             power=params["power"]
         )
 
-        # filtros leves (somente enquanto dá)
+        combo_set = set(combo)
+        combo_sorted = tuple(sorted(combo_set))
+
+        # 1️⃣ Bloqueia repetido exato
+        if combo_sorted in generated_sets:
+            continue
+
+        # 2️⃣ Bloqueia muito parecido
+        max_overlap = (
+            13 if jogo == "LOTOFÁCIL" else 4
+        )
+
+        if is_too_similar(
+                combo_set,
+                [set(x) for x in generated_sets],
+                max_overlap=max_overlap
+        ):
+            continue
+
+        # 3️⃣ Restrições gerais
         if passes_constraints(
-                combo,
+                combo_set,
                 already_drawn=already_drawn if jogo == "MEGA-SENA" else None
         ):
-            generated.append(sorted(combo))
-            generated_sets.append(set(combo))
+            generated.append(list(combo_sorted))
+            generated_sets.add(combo_sorted)
 
-            for d in combo:
+            for d in combo_set:
                 recent_usage[d] += 1
 
     if len(generated) < n_palpites:
