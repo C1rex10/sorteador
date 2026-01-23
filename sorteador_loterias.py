@@ -449,7 +449,7 @@ if st.button("🔄 GERAR PALPITES"):
     max_tries = n_palpites * 300
 
 
-    pool_size = max(int(n_bolas * 0.80), n_escolhas + 5)
+    pool_size = max(int(n_bolas * 0.92), n_escolhas + 8)
 
     freq_df_used = freq_df.head(pool_size)
 
@@ -470,17 +470,18 @@ if st.button("🔄 GERAR PALPITES"):
         if combo_sorted in generated_sets:
             continue
 
-        # 2️⃣ Bloqueia muito parecido
-        max_overlap = (
-            13 if jogo == "LOTOFÁCIL" else 4
-        )
+        if jogo == "LOTOFÁCIL":
+            max_overlap = 12 if len(generated) < 3 else 13
+        else:
+            max_overlap = 4
 
-        if is_too_similar(
-                combo_set,
-                [set(x) for x in generated_sets],
-                max_overlap=max_overlap
-        ):
-            continue
+        if len(generated_sets) >= 2:
+            if is_too_similar(
+                    combo_set,
+                    [set(x) for x in generated_sets],
+                    max_overlap=max_overlap
+            ):
+                continue
 
         # 3️⃣ Restrições gerais
         if passes_constraints(
