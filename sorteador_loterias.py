@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 from collections import Counter
+import time
 
 # -----------------------------
 # Constantes dos jogos
@@ -200,7 +201,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
         return pd.to_datetime(s, dayfirst=True).to_pydatetime()
 
     home_url = "https://servicebus2.caixa.gov.br/portaldeloterias/api/home/ultimos-resultados"
-    r = requests.get(home_url, timeout=30)
+    r = safe_get(home_url)
     r.raise_for_status()
     data_home = r.json()
 
@@ -241,7 +242,7 @@ def fetch_last6m(jogo: str) -> pd.DataFrame:
     rows = []
     for num_conc in range(num, 0, -1):
         url = f"{base_url}/{num_conc}"
-        r = requests.get(url, timeout=30)
+        r = safe_get(url)
         if r.status_code != 200:
             break
         data = r.json()
@@ -340,6 +341,17 @@ def is_too_similar(combo: Set[int],
     return False
 
 
+def safe_get(url, timeout=15, retries=3, sleep_sec=1):
+    for attempt in range(retries):
+        try:
+            return requests.get(url, timeout=timeout)
+        except requests.exceptions.ReadTimeout:
+            if attempt < retries - 1:
+                time.sleep(sleep_sec)
+            else:
+                raise
+
+
 def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     return f"""
     <div style='border:2px solid {color}; border-radius:10px; padding:16px; margin:18px 0;'>
@@ -380,6 +392,17 @@ freq_df = frequency_stats(
     n_escolhas=n_escolhas,
     recency_decay=params["recency_decay"]
 )
+
+with st.spinner("Buscando resultados oficiais da CAIXA..."):
+    try:
+        df = fetch_last6m(jogo)
+    except Exception as e:
+        st.error(
+            "❌ Não foi possível acessar a API da CAIXA agora.\n\n"
+            "A API é instável e pode demorar para responder.\n\n"
+            "👉 Tente novamente em alguns minutos."
+        )
+        st.stop()
 
 
 # ==== Último Concurso ====
