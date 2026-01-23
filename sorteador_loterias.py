@@ -351,6 +351,21 @@ def safe_get(url, timeout=15, retries=3, sleep_sec=1):
             else:
                 raise
 
+def mutate_combo(combo: Set[int], jogo: str, n_mutations=2) -> Set[int]:
+    novas = set(combo)
+    universo = set(range(1, GAMES[jogo]["n_bolas"] + 1))
+
+    for _ in range(n_mutations):
+        if not novas:
+            break
+        sair = random.choice(tuple(novas))
+        entrar = random.choice(tuple(universo - novas))
+        novas.remove(sair)
+        novas.add(entrar)
+
+    return novas
+
+
 
 def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
     return f"""
@@ -358,6 +373,8 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
         <h3 style='color:{color}; margin-top:0;'>{icon} {title}</h3>
         {inner_html}
     """
+
+
 
 # -----------------------------
 # App
@@ -453,6 +470,8 @@ if st.button("🔄 GERAR PALPITES"):
 
     freq_df_used = freq_df.head(pool_size)
 
+    stuck_counter = 0
+
     while len(generated) < n_palpites and tries < max_tries:
         tries += 1
 
@@ -464,10 +483,21 @@ if st.button("🔄 GERAR PALPITES"):
         )
 
         combo_set = set(combo)
+
+        # 🔥 Se estiver travado, força mutação
+        if stuck_counter > 50:
+            combo_set = mutate_combo(
+                combo_set,
+                jogo,
+                n_mutations=2 if jogo == "LOTOFÁCIL" else 1
+            )
+            stuck_counter = 0
+
         combo_sorted = tuple(sorted(combo_set))
 
         # 1️⃣ Bloqueia repetido exato
         if combo_sorted in generated_sets:
+            stuck_counter += 1
             continue
 
         if jogo == "LOTOFÁCIL":
