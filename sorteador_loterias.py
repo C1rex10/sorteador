@@ -374,6 +374,34 @@ def card_container(title: str, color: str, icon: str, inner_html: str) -> str:
         {inner_html}
     """
 
+def gen_weighted_with_noise(freq_df, k, recent_usage, power, noise_level=0.15):
+    df = freq_df.copy()
+
+    # adiciona ruído controlado no score
+    noise = np.random.normal(0, noise_level, size=len(df))
+    df["score_noisy"] = np.maximum(df["score_quente"] * (1 + noise), 0)
+
+    pool = df["dezena"].to_numpy()
+    base_w = df["score_noisy"].to_numpy() ** power + 1e-6
+
+    penalized_w = []
+    for dez, w in zip(pool, base_w):
+        penalized_w.append(w / (1 + 0.25 * recent_usage.get(int(dez), 0)))
+
+    w = np.array(penalized_w)
+    w = w / w.sum()
+
+    chosen = set()
+    available = pool.tolist()
+    weights = w.tolist()
+
+    for _ in range(k):
+        idx = np.random.choice(len(available), p=np.array(weights) / sum(weights))
+        chosen.add(int(available[idx]))
+        del available[idx]
+        del weights[idx]
+
+    return chosen
 
 
 # -----------------------------
@@ -475,11 +503,12 @@ if st.button("🔄 GERAR PALPITES"):
     while len(generated) < n_palpites and tries < max_tries:
         tries += 1
 
-        combo = gen_weighted(
+        combo = gen_weighted_with_noise(
             freq_df_used,
             n_escolhas,
             recent_usage,
-            power=params["power"]
+            power=params["power"],
+            noise_level=0.18 if jogo == "LOTOFÁCIL" else 0.10
         )
 
         combo_set = set(combo)
@@ -505,13 +534,6 @@ if st.button("🔄 GERAR PALPITES"):
         else:
             max_overlap = 4
 
-        if len(generated_sets) >= 2:
-            if is_too_similar(
-                    combo_set,
-                    [set(x) for x in generated_sets],
-                    max_overlap=max_overlap
-            ):
-                continue
 
         # 3️⃣ Restrições gerais
         if passes_constraints(
